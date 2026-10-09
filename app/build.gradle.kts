@@ -57,8 +57,8 @@ android {
         manifestPlaceholders["screenOrientation"] = "unspecified"
         buildConfigField("boolean", "XR_BUILD", "false")
 
-        versionCode = 240
-        versionName = "2.3.81b"
+        versionCode = 241
+        versionName = "2.3.90"
 
         buildConfigField("boolean", "GOLD", "false")
         val iconValue = "@mipmap/ic_launcher"
