@@ -100,7 +100,7 @@ class ExternalActionPad(
                     addView(trackpadView)
                     if (PadSettings.bool(PadSettings.SCROLLBAR_ON)) {
                         addView(
-                            TrackpadScrollBar(context) { direction -> sendWheel(direction) }.apply {
+                            TrackpadScrollBar(context, theme) { direction -> sendWheel(direction) }.apply {
                                 layoutParams = FrameLayout.LayoutParams((26 * density).toInt(), ViewGroup.LayoutParams.MATCH_PARENT).apply {
                                     val edge = (4 * density).toInt()
                                     gravity = if (PadSettings.int(PadSettings.SCROLLBAR_SIDE) == 1) Gravity.START else Gravity.END
