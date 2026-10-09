@@ -554,8 +554,11 @@ class PhysicalControllerHandler(
 
     private fun cursorScrollFor(bindings: Collection<Binding>?): Binding? = when {
         bindings == null -> null
-        Binding.GAMEPAD_BUTTON_Y in bindings -> Binding.MOUSE_SCROLL_UP
-        Binding.GAMEPAD_BUTTON_X in bindings -> Binding.MOUSE_SCROLL_DOWN
+        // Y scrolls down and X scrolls up; "Invert Y / X scroll" in the pad settings swaps them.
+        Binding.GAMEPAD_BUTTON_Y in bindings ->
+            if (PadSettings.bool(PadSettings.SCROLL_INVERT)) Binding.MOUSE_SCROLL_UP else Binding.MOUSE_SCROLL_DOWN
+        Binding.GAMEPAD_BUTTON_X in bindings ->
+            if (PadSettings.bool(PadSettings.SCROLL_INVERT)) Binding.MOUSE_SCROLL_DOWN else Binding.MOUSE_SCROLL_UP
         else -> null
     }
 
