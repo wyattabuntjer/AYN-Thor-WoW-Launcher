@@ -120,8 +120,8 @@ class ExternalPadSettingsView(
             )
             addView(status)
         }
-        section("Remap buttons") {
-            addView(rowOf(button("Choose a button to remap") { showRemap() }))
+        section("Remap and rename buttons") {
+            addView(rowOf(button("Choose a button to remap or rename") { showRemap() }))
         }
         section("Profiles") {
             val status = note("")
@@ -169,13 +169,17 @@ class ExternalPadSettingsView(
     private fun showRemap() {
         content.removeAllViews()
         scrollTo(0, 0)
-        section("Remap buttons") {
-            addView(note("Tap a pad button, then choose the key it should send."))
+        section("Remap and rename buttons") {
+            addView(note("Tap a pad button, then choose the key it should send or give it a new name."))
             addView(
                 rowOf(
                     button("Back") { showMain() },
                     button("Reset all remaps") {
                         PadSettings.clearRemaps()
+                        showRemap()
+                    },
+                    button("Reset all names") {
+                        PadSettings.clearRenames()
                         showRemap()
                     },
                 ),
@@ -188,7 +192,8 @@ class ExternalPadSettingsView(
                     rowOf(
                         *chunk.map { (label, default) ->
                             val mapped = PadSettings.remapped(label)
-                            button(if (mapped == null) label else "$label → ${keyName(mapped)}", active = mapped != null) {
+                            val shown = PadSettings.displayName(label)
+                            button(if (mapped == null) shown else "$shown → ${keyName(mapped)}", active = mapped != null || PadSettings.renamed(label) != null) {
                                 showKeyPicker(label, default)
                             }
                         }.toTypedArray(),
@@ -202,10 +207,11 @@ class ExternalPadSettingsView(
     private fun showKeyPicker(label: String, default: XKeycode) {
         content.removeAllViews()
         scrollTo(0, 0)
-        section("Key for \"$label\"") {
+        section("Key for \"${PadSettings.displayName(label)}\"") {
             addView(
                 rowOf(
                     button("Back") { showRemap() },
+                    button("Rename", active = PadSettings.renamed(label) != null) { showRename(label, default) },
                     button("Default (${keyName(default.name)})") {
                         PadSettings.setRemap(label, null)
                         showRemap()
@@ -227,6 +233,72 @@ class ExternalPadSettingsView(
                     ),
                 )
             }
+        }
+    }
+
+    /** Renames a pad button with a small built-in letter grid (an on-screen keyboard can't open on this display). */
+    private fun showRename(label: String, default: XKeycode) {
+        content.removeAllViews()
+        scrollTo(0, 0)
+        val name = StringBuilder(PadSettings.renamed(label) ?: "")
+        var upper = true
+        val preview = note("")
+        fun refreshPreview() { preview.text = if (name.isEmpty()) "Name: (original: $label)" else "Name: $name" }
+        refreshPreview()
+        section("Rename \"$label\"") {
+            addView(preview)
+            addView(
+                rowOf(
+                    button("Back") { showKeyPicker(label, default) },
+                    button("Save") {
+                        PadSettings.setRename(label, name.toString())
+                        showKeyPicker(label, default)
+                    },
+                    button("Original") {
+                        PadSettings.setRename(label, null)
+                        showKeyPicker(label, default)
+                    },
+                ),
+            )
+        }
+        val letterButtons = mutableListOf<Pair<Button, Char>>()
+        section("Characters") {
+            fun add(c: Char) {
+                if (name.length < MAX_NAME) name.append(c)
+                refreshPreview()
+            }
+            ('a'..'z').chunked(9).forEach { chunk ->
+                addView(
+                    rowOf(
+                        *chunk.map { c ->
+                            button(c.uppercase()) { add(if (upper) c.uppercaseChar() else c) }.also { letterButtons += it to c }
+                        }.toTypedArray(),
+                        filler = 9 - chunk.size,
+                    ),
+                )
+            }
+            ('0'..'9').toList().chunked(10).forEach { chunk ->
+                addView(rowOf(*chunk.map { c -> button("$c") { add(c) } }.toTypedArray()))
+            }
+            addView(
+                rowOf(
+                    button("Aa") {
+                        upper = !upper
+                        letterButtons.forEach { (b, c) -> b.text = if (upper) c.uppercase() else c.toString() }
+                    },
+                    button("Space") { add(' ') },
+                    button("-") { add('-') },
+                    button("/") { add('/') },
+                    button("⌫") {
+                        if (name.isNotEmpty()) name.setLength(name.length - 1)
+                        refreshPreview()
+                    },
+                    button("Clear") {
+                        name.setLength(0)
+                        refreshPreview()
+                    },
+                ),
+            )
         }
     }
 
@@ -456,6 +528,8 @@ class ExternalPadSettingsView(
     }
 
     private companion object {
+        private const val MAX_NAME = 12
+
         val PICKER_KEYS: List<XKeycode> = buildList {
             val names = ('A'..'Z').map { "KEY_$it" } + (0..9).map { "KEY_$it" } + (1..12).map { "KEY_F$it" } +
                 listOf(

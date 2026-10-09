@@ -163,7 +163,7 @@ class ExternalActionBarView(
     @SuppressLint("ClickableViewAccessibility")
     private fun createButton(slot: Slot, textSp: Float, muted: Boolean, raised: Boolean, hotbar: Boolean): View {
         return TextView(context).apply {
-            text = slot.label
+            text = PadSettings.displayName(slot.label)
             contentDescription = slot.label
             gravity = Gravity.CENTER
             setTextColor(theme.text)

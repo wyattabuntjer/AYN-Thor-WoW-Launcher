@@ -16,6 +16,7 @@ import org.json.JSONObject
 object PadSettings {
     private const val PREFS = "pad_settings"
     private const val REMAP = "remap"
+    private const val RENAME = "rename"
     private const val PROFILE_PREFIX = "profile_"
     const val PROFILE_SLOTS = 3
 
@@ -176,12 +177,35 @@ object PadSettings {
         version++
     }
 
+    // Button renaming: pad button label -> the text shown on it. The label stays the button's id.
+
+    private fun renameJson(): JSONObject =
+        runCatching { JSONObject(prefs?.getString(RENAME, null) ?: "{}") }.getOrDefault(JSONObject())
+
+    fun renamed(label: String): String? = renameJson().optString(label).takeIf { it.isNotEmpty() }
+
+    /** What the button shows: its custom name, or the original label. */
+    fun displayName(label: String): String = renamed(label) ?: label
+
+    fun setRename(label: String, name: String?) {
+        val json = renameJson()
+        if (name.isNullOrBlank()) json.remove(label) else json.put(label, name.trim())
+        prefs?.edit()?.putString(RENAME, json.toString())?.apply()
+        version++
+    }
+
+    fun clearRenames() {
+        prefs?.edit()?.remove(RENAME)?.apply()
+        version++
+    }
+
     // Reset, profiles, export and import.
 
     fun resetAll() {
         prefs?.edit()?.apply {
             DEFAULTS.keys.forEach { remove(it) }
             remove(REMAP)
+            remove(RENAME)
         }?.apply()
         version++
     }
@@ -192,6 +216,7 @@ object PadSettings {
             if (DEFAULTS[key] is Boolean) put(key, bool(key)) else put(key, int(key))
         }
         put(REMAP, remapJson())
+        put(RENAME, renameJson())
     }
 
     /** Applies a [snapshot]. Unknown or mistyped entries are ignored. */
@@ -204,6 +229,7 @@ object PadSettings {
         }
         if (json.has(FKEY_COUNT) && !json.has(FKEY_N)) editor.putInt(FKEY_N, if (json.optInt(FKEY_COUNT) == 1) 6 else 12)
         json.optJSONObject(REMAP)?.let { editor.putString(REMAP, it.toString()) }
+        json.optJSONObject(RENAME)?.let { editor.putString(RENAME, it.toString()) }
         editor.apply()
         version++
     }
