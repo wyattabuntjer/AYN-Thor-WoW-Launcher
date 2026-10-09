@@ -1,5 +1,6 @@
 package app.gamenative.ui.screen.wow
 
+import app.gamenative.externaldisplay.PadSettings
 import android.content.Context
 import android.os.Build
 import android.os.Environment
@@ -97,6 +98,10 @@ fun WoWForeverScreen(
 
     var flavor by remember { mutableStateOf(WowFlavor.load(context)) }
     var buttonPad by remember { mutableStateOf(ButtonPad.isEnabled(context, flavor)) }
+    var r3Toggle by remember {
+        PadSettings.init(context)
+        mutableStateOf(PadSettings.bool(PadSettings.R3_TOGGLE))
+    }
     var forceGamepadUi by remember { mutableStateOf(ButtonPad.forceGamepadUi(context, flavor)) }
     var gamePath by remember { mutableStateOf(GamePath.load(context)) }
     var files by remember { mutableStateOf(GamePath.Status()) }
@@ -436,6 +441,18 @@ fun WoWForeverScreen(
                         onCheckedChange = {
                             forceGamepadUi = it
                             ButtonPad.setForceGamepadUi(context, flavor, it)
+                        },
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "R3 toggles mouse / camera", fontSize = 12.sp, color = WowMuted)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = r3Toggle,
+                        enabled = !isLaunching,
+                        onCheckedChange = {
+                            r3Toggle = it
+                            PadSettings.set(PadSettings.R3_TOGGLE, it)
                         },
                     )
                 }
