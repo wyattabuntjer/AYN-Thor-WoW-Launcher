@@ -81,7 +81,12 @@ class PhysicalControllerHandler(
     // Physical key code -> mouse button binding for A/B clicks started while in cursor mode.
     private val cursorClickBindings = mutableMapOf<Int, Binding>()
 
+    // Physical key code -> scroll binding for Y / X pressed while in cursor mode (Y scrolls up, X scrolls down).
+    private val cursorScrollBindings = mutableMapOf<Int, Binding>()
+
     private fun releaseCursorClicks() {
+        cursorScrollBindings.clear()
+        clearScrollRepeats()
         for (click in cursorClickBindings.values) {
             click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
         }
@@ -215,10 +220,22 @@ class PhysicalControllerHandler(
             if (controller != null && !radialMenuPressed) {
                 // Always finish a click we started, even if the mode was switched meanwhile.
                 if (event.action == KeyEvent.ACTION_UP) {
+                    cursorScrollBindings.remove(keyCode)?.let { scroll ->
+                        handleScrollBinding(scroll, false)
+                        return true
+                    }
                     cursorClickBindings.remove(keyCode)?.let { click ->
                         click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
                         return true
                     }
+                } else if (event.action == KeyEvent.ACTION_DOWN && rightStickMouseMode && PadSettings.bool(PadSettings.SCROLL_KEYS) &&
+                    cursorScrollFor(controller.getControllerBinding(keyCode)?.bindingCombo?.bindings) != null
+                ) {
+                    // Cursor mode: Y scrolls the wheel up and X scrolls it down, repeating while held.
+                    val scroll = cursorScrollFor(controller.getControllerBinding(keyCode)?.bindingCombo?.bindings)!!
+                    cursorScrollBindings[keyCode] = scroll
+                    handleScrollBinding(scroll, true)
+                    return true
                 } else if (event.action == KeyEvent.ACTION_DOWN && rightStickMouseMode && PadSettings.int(PadSettings.AB_MODE) != 0) {
                     // Cursor mode: the pad's A / B buttons act as left / right click (or swapped, per the setting).
                     val swapped = PadSettings.int(PadSettings.AB_MODE) == 2
@@ -532,6 +549,13 @@ class PhysicalControllerHandler(
         mouseMoveOffset.set(0f, 0f)
         mouseMoveTimer?.cancel()
         mouseMoveTimer = null
+    }
+
+    private fun cursorScrollFor(bindings: Collection<Binding>?): Binding? = when {
+        bindings == null -> null
+        Binding.GAMEPAD_BUTTON_Y in bindings -> Binding.MOUSE_SCROLL_UP
+        Binding.GAMEPAD_BUTTON_X in bindings -> Binding.MOUSE_SCROLL_DOWN
+        else -> null
     }
 
     private fun handleScrollBinding(binding: Binding, isActionDown: Boolean): Boolean {
