@@ -73,13 +73,31 @@ object BattleNetSignIn {
 
     /**
      * login.txt holds the password in plain text, so it should only exist while the client starts.
-     * Removes it after [delayMs] on an app-wide scope, so leaving the launcher screen doesn't cancel it.
+     * The first launch of a game build (a fresh install, or the first launch after a game update) is slow,
+     * so the file is kept for [FIRST_LAUNCH_LIFETIME_MS]; later launches of the same build only need
+     * [LOGIN_FILE_LIFETIME_MS]. Runs on an app-wide scope, so leaving the launcher screen doesn't cancel it.
      */
-    fun scheduleLoginFileRemoval(gameRoot: File, delayMs: Long = LOGIN_FILE_LIFETIME_MS) {
+    fun scheduleLoginFileRemoval(context: Context, gameRoot: File) {
+        val appContext = context.applicationContext
+        val build = currentBuildKey(gameRoot)
+        val seen = prefs(appContext).getStringSet(KEY_LAUNCHED_BUILDS, emptySet()) ?: emptySet()
+        val firstLaunch = build == null || build !in seen
+        val delayMs = if (firstLaunch) FIRST_LAUNCH_LIFETIME_MS else LOGIN_FILE_LIFETIME_MS
         cleanupScope.launch {
             delay(delayMs)
             removeLoginFile(gameRoot)
+            // Only count the build as launched once the whole wait has passed, so a launch that
+            // was cut short still gets the longer wait next time.
+            if (build != null) {
+                val now = prefs(appContext).getStringSet(KEY_LAUNCHED_BUILDS, emptySet()) ?: emptySet()
+                prefs(appContext).edit().putStringSet(KEY_LAUNCHED_BUILDS, now + build).apply()
+            }
         }
+    }
+
+    private fun currentBuildKey(gameRoot: File): String? {
+        val version = WowClientDownloader.readBuildInfo(File(gameRoot, WowClientDownloader.BUILD_INFO))?.get("Version")
+        return version?.takeIf { it.isNotBlank() }?.let { "${WowFlavor.current.product}:$it" }
     }
 
     fun writeLoginFile(gameRoot: File, login: Login) {
@@ -107,7 +125,9 @@ object BattleNetSignIn {
     private const val KEY_EMAIL = "email"
     private const val KEY_PASSWORD = "password"
     private const val KEY_AUTO_LOGIN = "auto_login"
-    const val LOGIN_FILE_LIFETIME_MS = 5 * 60_000L
+    const val LOGIN_FILE_LIFETIME_MS = 60_000L
+    const val FIRST_LAUNCH_LIFETIME_MS = 5 * 60_000L
+    private const val KEY_LAUNCHED_BUILDS = "launched_builds"
     private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 }
 
