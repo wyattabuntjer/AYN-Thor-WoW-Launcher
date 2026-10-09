@@ -114,6 +114,7 @@ fun WoWForeverScreen(
     var isUpdating by remember { mutableStateOf(false) }
     var updateStatusText by remember { mutableStateOf("") }
     var appUpdate by remember { mutableStateOf<AppUpdater.Release?>(null) }
+    var betaUpdates by remember { mutableStateOf(AppUpdater.betaEnabled(context)) }
     var isDownloadingAppUpdate by remember { mutableStateOf(false) }
     var appUpdateProgress by remember { mutableFloatStateOf(0f) }
     var showAppUpdateDialog by remember { mutableStateOf(false) }
@@ -122,7 +123,7 @@ fun WoWForeverScreen(
     var downloadedApk by remember { mutableStateOf<File?>(null) }
 
     suspend fun fetchAppUpdate(): AppUpdater.Release? {
-        val release = AppUpdater.check()
+        val release = AppUpdater.check(includeBeta = betaUpdates)
         appUpdate = release
         if (release != null) {
             showAppUpdateDialog = true
@@ -646,7 +647,23 @@ fun WoWForeverScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = if (betaUpdates) "Beta app updates: On (tap to turn off)" else "Beta app updates: Off (tap to turn on)",
+                fontSize = 11.sp,
+                color = WowSubtle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        betaUpdates = !betaUpdates
+                        AppUpdater.setBetaEnabled(context, betaUpdates)
+                        appUpdate = null
+                        checkAppUpdate()
+                    }
+                    .padding(vertical = 8.dp),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 

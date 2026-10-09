@@ -119,4 +119,41 @@ class AppUpdaterTest {
     fun parseRelease_invalidJson_returnsNull() {
         assertNull(AppUpdater.parseRelease("not-json", "2.1.2"))
     }
+
+    @Test
+    fun isNewer_letterSuffixBeta_sitsBetweenReleases() {
+        assertTrue(AppUpdater.isNewer("v2.3.3b", "2.3.2"))
+        assertFalse(AppUpdater.isNewer("v2.3.3b", "2.3.3"))
+        assertTrue(AppUpdater.isNewer("v2.3.3", "2.3.3b"))
+        assertFalse(AppUpdater.isNewer("v2.3.2", "2.3.3b"))
+        assertTrue(AppUpdater.isNewer("v2.3.3c", "2.3.3b"))
+    }
+
+    @Test
+    fun isPrerelease_detectsBetaTags() {
+        assertTrue(AppUpdater.isPrerelease("v2.3.3b"))
+        assertTrue(AppUpdater.isPrerelease("v2.3.3-beta1"))
+        assertFalse(AppUpdater.isPrerelease("v2.3.3"))
+    }
+
+    private fun releaseJson(tag: String, prerelease: Boolean = false) = """
+        {"tag_name": "$tag", "name": "$tag", "body": "", "prerelease": $prerelease,
+         "assets": [{"name": "app.apk", "browser_download_url": "https://example.com/$tag.apk", "size": 1000}]}
+    """.trimIndent()
+
+    @Test
+    fun parseRelease_beta_hiddenUnlessOptedIn() {
+        assertNull(AppUpdater.parseRelease(releaseJson("v2.3.3b", prerelease = true), "2.3.2"))
+        // Even if someone forgets to flag it as a pre-release, the tag keeps it from stable users.
+        assertNull(AppUpdater.parseRelease(releaseJson("v2.3.3b"), "2.3.2"))
+        assertEquals("2.3.3b", AppUpdater.parseRelease(releaseJson("v2.3.3b", true), "2.3.2", includeBeta = true)?.version)
+    }
+
+    @Test
+    fun parseReleaseList_picksNewestUsableRelease() {
+        val list = "[" + listOf(releaseJson("v2.3.3b", true), releaseJson("v2.3.2"), releaseJson("v2.3.1")).joinToString(",") + "]"
+        assertEquals("2.3.3b", AppUpdater.parseReleaseList(list, "2.3.2", includeBeta = true)?.version)
+        assertNull(AppUpdater.parseReleaseList(list, "2.3.2", includeBeta = false))
+        assertEquals("2.3.3b", AppUpdater.parseReleaseList(list, "2.3.1", includeBeta = true)?.version)
+    }
 }
