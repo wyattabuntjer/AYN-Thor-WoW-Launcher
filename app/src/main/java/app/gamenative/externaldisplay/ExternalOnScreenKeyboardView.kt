@@ -5,6 +5,7 @@ import android.graphics.drawable.StateListDrawable
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -31,7 +32,7 @@ class ExternalOnScreenKeyboardView(
         val sendShifted: Boolean = false,
     )
 
-    private enum class Action { INPUT, SHIFT, BACKSPACE, ENTER, SPACE, TAB, ESC, ARROW_LEFT, ARROW_DOWN, ARROW_RIGHT, ARROW_UP, SYMBOLS }
+    private enum class Action { INPUT, SHIFT, BACKSPACE, ENTER, SPACE, ARROW_LEFT, ARROW_DOWN, ARROW_RIGHT, ARROW_UP, SYMBOLS }
 
     private data class KeyButton(
         val spec: KeySpec,
@@ -61,9 +62,9 @@ class ExternalOnScreenKeyboardView(
 
     /** Letters, digits and the few symbols used when chatting. Everything else lives on the symbols page. */
     private fun buildMainPage() {
+        // Laid out like Gboard: number row, then QWERTY with the home row nudged in, no Esc or Tab.
         addRow(
             listOf(
-                KeySpec("Esc", keycode = XKeycode.KEY_ESC, weight = 1.25f, action = Action.ESC),
                 KeySpec("1", "!", XKeycode.KEY_1),
                 KeySpec("2", "@", XKeycode.KEY_2),
                 KeySpec("3", "#", XKeycode.KEY_3),
@@ -74,13 +75,11 @@ class ExternalOnScreenKeyboardView(
                 KeySpec("8", "*", XKeycode.KEY_8),
                 KeySpec("9", "(", XKeycode.KEY_9),
                 KeySpec("0", ")", XKeycode.KEY_0),
-                KeySpec("⌫", keycode = XKeycode.KEY_BKSP, weight = 1.75f, action = Action.BACKSPACE),
             ),
         )
 
         addRow(
             listOf(
-                KeySpec("Tab", keycode = XKeycode.KEY_TAB, weight = 1.5f, action = Action.TAB),
                 KeySpec("q", "Q", XKeycode.KEY_Q, isLetter = true),
                 KeySpec("w", "W", XKeycode.KEY_W, isLetter = true),
                 KeySpec("e", "E", XKeycode.KEY_E, isLetter = true),
@@ -96,7 +95,6 @@ class ExternalOnScreenKeyboardView(
 
         addRow(
             listOf(
-                KeySpec("Shift", weight = 1.75f, action = Action.SHIFT),
                 KeySpec("a", "A", XKeycode.KEY_A, isLetter = true),
                 KeySpec("s", "S", XKeycode.KEY_S, isLetter = true),
                 KeySpec("d", "D", XKeycode.KEY_D, isLetter = true),
@@ -106,13 +104,13 @@ class ExternalOnScreenKeyboardView(
                 KeySpec("j", "J", XKeycode.KEY_J, isLetter = true),
                 KeySpec("k", "K", XKeycode.KEY_K, isLetter = true),
                 KeySpec("l", "L", XKeycode.KEY_L, isLetter = true),
-                KeySpec("Enter", keycode = XKeycode.KEY_ENTER, weight = 2.0f, action = Action.ENTER),
             ),
+            indent = 0.5f,
         )
 
         addRow(
             listOf(
-                KeySpec("Sym", weight = 1.25f, action = Action.SYMBOLS),
+                KeySpec("Shift", weight = 1.5f, action = Action.SHIFT),
                 KeySpec("z", "Z", XKeycode.KEY_Z, isLetter = true),
                 KeySpec("x", "X", XKeycode.KEY_X, isLetter = true),
                 KeySpec("c", "C", XKeycode.KEY_C, isLetter = true),
@@ -120,15 +118,18 @@ class ExternalOnScreenKeyboardView(
                 KeySpec("b", "B", XKeycode.KEY_B, isLetter = true),
                 KeySpec("n", "N", XKeycode.KEY_N, isLetter = true),
                 KeySpec("m", "M", XKeycode.KEY_M, isLetter = true),
-                KeySpec(",", "<", XKeycode.KEY_COMMA),
-                KeySpec(".", ">", XKeycode.KEY_PERIOD),
-                KeySpec("/", "?", XKeycode.KEY_SLASH),
+                KeySpec("⌫", keycode = XKeycode.KEY_BKSP, weight = 1.5f, action = Action.BACKSPACE),
             ),
         )
 
         addRow(
             listOf(
-                KeySpec("Space", keycode = XKeycode.KEY_SPACE, weight = 6f, action = Action.SPACE),
+                KeySpec("?123", weight = 1.5f, action = Action.SYMBOLS),
+                KeySpec(",", "<", XKeycode.KEY_COMMA),
+                KeySpec("/", "?", XKeycode.KEY_SLASH),
+                KeySpec("Space", keycode = XKeycode.KEY_SPACE, weight = 4f, action = Action.SPACE),
+                KeySpec(".", ">", XKeycode.KEY_PERIOD),
+                KeySpec("Enter", keycode = XKeycode.KEY_ENTER, weight = 1.5f, action = Action.ENTER),
             ),
         )
     }
@@ -178,6 +179,7 @@ class ExternalOnScreenKeyboardView(
                 sym("~", XKeycode.KEY_GRAVE, true),
                 sym("<", XKeycode.KEY_COMMA, true),
                 sym(">", XKeycode.KEY_PERIOD, true),
+                sym("/", XKeycode.KEY_SLASH, false),
                 sym("?", XKeycode.KEY_SLASH, true),
                 KeySpec("Enter", keycode = XKeycode.KEY_ENTER, weight = 1.75f, action = Action.ENTER),
             ),
@@ -195,7 +197,7 @@ class ExternalOnScreenKeyboardView(
         )
     }
 
-    private fun addRow(keys: List<KeySpec>) {
+    private fun addRow(keys: List<KeySpec>, indent: Float = 0f) {
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER
@@ -208,6 +210,8 @@ class ExternalOnScreenKeyboardView(
         val margin = dp(3)
         val height = dp(48)
 
+        fun gap() = row.addView(View(context), LayoutParams(0, height, indent))
+        if (indent > 0f) gap()
         keys.forEach { spec ->
             val button = Button(context).apply {
                 isAllCaps = false
@@ -232,6 +236,7 @@ class ExternalOnScreenKeyboardView(
             keyButtons += KeyButton(spec, button)
             row.addView(button)
         }
+        if (indent > 0f) gap()
 
         addView(row)
     }
@@ -249,8 +254,6 @@ class ExternalOnScreenKeyboardView(
             Action.BACKSPACE -> pressKey(XKeycode.KEY_BKSP)
             Action.ENTER -> pressKey(XKeycode.KEY_ENTER)
             Action.SPACE -> pressKey(XKeycode.KEY_SPACE)
-            Action.TAB -> pressKey(XKeycode.KEY_TAB)
-            Action.ESC -> pressKey(XKeycode.KEY_ESC)
             Action.ARROW_LEFT -> pressKey(XKeycode.KEY_LEFT)
             Action.ARROW_DOWN -> pressKey(XKeycode.KEY_DOWN)
             Action.ARROW_RIGHT -> pressKey(XKeycode.KEY_RIGHT)
@@ -282,8 +285,6 @@ class ExternalOnScreenKeyboardView(
             Action.BACKSPACE -> releaseKey(XKeycode.KEY_BKSP)
             Action.ENTER -> releaseKey(XKeycode.KEY_ENTER)
             Action.SPACE -> releaseKey(XKeycode.KEY_SPACE)
-            Action.TAB -> releaseKey(XKeycode.KEY_TAB)
-            Action.ESC -> releaseKey(XKeycode.KEY_ESC)
             Action.ARROW_LEFT -> releaseKey(XKeycode.KEY_LEFT)
             Action.ARROW_DOWN -> releaseKey(XKeycode.KEY_DOWN)
             Action.ARROW_RIGHT -> releaseKey(XKeycode.KEY_RIGHT)
