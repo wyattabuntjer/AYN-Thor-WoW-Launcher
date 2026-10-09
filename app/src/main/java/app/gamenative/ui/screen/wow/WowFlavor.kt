@@ -46,7 +46,7 @@ enum class WowFlavor(
         defaultFolder = "World of Warcraft",
     ),
     CLASSIC_ANNIVERSARY(
-        label = "BC Anniversary",
+        label = "TBC Anniversary",
         subtitle = "BURNING CRUSADE ANNIVERSARY (ARM64 NATIVE)",
         product = "wow_anniversary",
         dir = "_anniversary_",
@@ -76,7 +76,7 @@ enum class WowFlavor(
         FOREVER -> "Forever"
         RETAIL -> "Retail"
         CLASSIC_ERA -> "Classic Era"
-        CLASSIC_ANNIVERSARY -> "BC Anniversary"
+        CLASSIC_ANNIVERSARY -> "TBC Anniversary"
         CLASSIC_MOP -> "MoP Classic"
     }
 
