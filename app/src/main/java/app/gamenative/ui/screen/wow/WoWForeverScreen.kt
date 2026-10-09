@@ -117,6 +117,10 @@ fun WoWForeverScreen(
     var appUpdate by remember { mutableStateOf<AppUpdater.Release?>(null) }
     var betaUpdates by remember { mutableStateOf(AppUpdater.betaEnabled(context)) }
     var skipAutoUpdates by remember { mutableStateOf(AppUpdater.skipAutoUpdates(context)) }
+    var gamepadUi by remember {
+        PadSettings.init(context)
+        mutableStateOf(PadSettings.int(PadSettings.GAMEPAD_UI))
+    }
     var isDownloadingAppUpdate by remember { mutableStateOf(false) }
     var appUpdateProgress by remember { mutableFloatStateOf(0f) }
     var showAppUpdateDialog by remember { mutableStateOf(false) }
@@ -702,6 +706,19 @@ fun WoWForeverScreen(
                     }
                     .padding(vertical = 8.dp),
             )
+            Text(
+                text = "Gamepad UI: ${GAMEPAD_UI_LABELS[gamepadUi.coerceIn(0, 2)]} (tap to change)",
+                fontSize = 11.sp,
+                color = WowSubtle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        gamepadUi = (gamepadUi + 1) % 3
+                        PadSettings.set(PadSettings.GAMEPAD_UI, gamepadUi)
+                    }
+                    .padding(vertical = 8.dp),
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -1229,6 +1246,7 @@ private val CONFIG_DEFAULTS get() = linkedMapOf(
     "InputDeviceInterfaceStyle" to "\"1\"",
 )
 
+private val GAMEPAD_UI_LABELS = listOf("Force on", "Leave alone", "Force off")
 private val ALWAYS_FORCED_CONFIG_KEYS = listOf("gxApi", "RenderScale", "ResampleQuality")
 private val GAMEPAD_CONFIG_KEYS = listOf("GamePadEnable", "InputDeviceInterfaceStyle")
 
