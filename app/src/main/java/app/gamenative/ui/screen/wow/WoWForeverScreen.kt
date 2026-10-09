@@ -115,6 +115,7 @@ fun WoWForeverScreen(
     var updateStatusText by remember { mutableStateOf("") }
     var appUpdate by remember { mutableStateOf<AppUpdater.Release?>(null) }
     var betaUpdates by remember { mutableStateOf(AppUpdater.betaEnabled(context)) }
+    var skipAutoUpdates by remember { mutableStateOf(AppUpdater.skipAutoUpdates(context)) }
     var isDownloadingAppUpdate by remember { mutableStateOf(false) }
     var appUpdateProgress by remember { mutableFloatStateOf(0f) }
     var showAppUpdateDialog by remember { mutableStateOf(false) }
@@ -122,7 +123,9 @@ fun WoWForeverScreen(
     var pendingInstallPermission by remember { mutableStateOf(false) }
     var downloadedApk by remember { mutableStateOf<File?>(null) }
 
-    suspend fun fetchAppUpdate(): AppUpdater.Release? {
+    suspend fun fetchAppUpdate(manual: Boolean = false): AppUpdater.Release? {
+        // With "skip automatic app updates" on, only a manual refresh looks for a new app version.
+        if (skipAutoUpdates && !manual) return null
         val release = AppUpdater.check(includeBeta = betaUpdates)
         appUpdate = release
         if (release != null) {
@@ -131,8 +134,8 @@ fun WoWForeverScreen(
         return release
     }
 
-    fun checkAppUpdate() {
-        scope.launch { fetchAppUpdate() }
+    fun checkAppUpdate(manual: Boolean = false) {
+        scope.launch { fetchAppUpdate(manual) }
     }
 
     fun installOrRequestPermission(apk: File) {
@@ -612,7 +615,7 @@ fun WoWForeverScreen(
                         LinkButton("Refresh Status", Icons.Default.Refresh) {
                             checkFiles()
                             checkVersionStatus()
-                            checkAppUpdate()
+                            checkAppUpdate(manual = true)
                         }
                         if (!filesMissing) {
                             LinkButton("Change Location", Icons.Default.FolderOpen) { folderPicker.launch(null) }
@@ -660,6 +663,20 @@ fun WoWForeverScreen(
                         AppUpdater.setBetaEnabled(context, betaUpdates)
                         appUpdate = null
                         checkAppUpdate()
+                    }
+                    .padding(vertical = 8.dp),
+            )
+            Text(
+                text = if (skipAutoUpdates) "Skip automatic app updates: On (tap to turn off)" else "Skip automatic app updates: Off (tap to turn on)",
+                fontSize = 11.sp,
+                color = WowSubtle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        skipAutoUpdates = !skipAutoUpdates
+                        AppUpdater.setSkipAutoUpdates(context, skipAutoUpdates)
+                        if (skipAutoUpdates) appUpdate = null
                     }
                     .padding(vertical = 8.dp),
             )

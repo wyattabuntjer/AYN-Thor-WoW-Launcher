@@ -18,6 +18,7 @@ object AppUpdater {
     private const val RELEASES_URL = "https://api.github.com/repos/wyattabuntjer/AYN-Thor-WoW-Launcher/releases/latest"
     private const val RELEASES_LIST_URL = "https://api.github.com/repos/wyattabuntjer/AYN-Thor-WoW-Launcher/releases?per_page=10"
     private const val KEY_BETA = "beta_updates"
+    private const val KEY_SKIP_AUTO = "skip_auto_updates"
 
     data class Release(
         val version: String,
@@ -66,6 +67,13 @@ object AppUpdater {
 
     fun setBetaEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_BETA, enabled).apply()
+    }
+
+    /** Whether the launcher should skip checking for app updates by itself. Refresh Status still checks. Off by default. */
+    fun skipAutoUpdates(context: Context): Boolean = prefs(context).getBoolean(KEY_SKIP_AUTO, false)
+
+    fun setSkipAutoUpdates(context: Context, skip: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SKIP_AUTO, skip).apply()
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences("app_updates", Context.MODE_PRIVATE)
