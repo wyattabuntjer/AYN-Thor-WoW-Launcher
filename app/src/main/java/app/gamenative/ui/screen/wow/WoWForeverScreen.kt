@@ -306,7 +306,7 @@ fun WoWForeverScreen(
     val filesMissing = !(files.dataExists && files.buildInfoExists)
     val canUpdate = !isLaunching && !isUpdating && !filesMissing && !files.isWrongGame
     // The game won't start until auto-login is set up or switched off.
-    val canPlay = canUpdate && loginReady
+    val canPlay = canUpdate && loginReady && files.hasStorageAccess
     val busy = isLaunching || isUpdating
 
     fun performUpdate() {
@@ -435,7 +435,11 @@ fun WoWForeverScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CheckItem(label = if (files.exeExists) "ARM64 Binary (${files.exeName})" else "ARM64 Binary (downloads on Play)", ready = files.exeExists)
+                        CheckItem(
+                            label = if (files.exeExists) "ARM64 Binary (${files.exeName})" else "ARM64 Binary (downloads on Play)",
+                            ready = files.exeExists,
+                            warning = !files.exeExists,
+                        )
                         CheckItem(label = "Game Asset Archives (Data/)", ready = files.dataExists)
                         CheckItem(
                             label = if (files.isWrongGame) "Install Info ($BUILD_INFO - requires $TARGET_PRODUCT)" else "Install Info ($BUILD_INFO)",
@@ -454,6 +458,7 @@ fun WoWForeverScreen(
                             CheckItem(
                                 label = "App Build: v${BuildConfig.VERSION_NAME} (v${it.version} available)",
                                 ready = false,
+                                warning = true,
                             )
                         } ?: CheckItem(
                             label = "App Build: v${BuildConfig.VERSION_NAME}",
@@ -467,6 +472,7 @@ fun WoWForeverScreen(
                                     "Client Build: ${version.localVersion} (Up to date)"
                                 },
                                 ready = !version.isOutdated,
+                                warning = true,
                             )
                         }
                     }
@@ -1043,13 +1049,30 @@ private fun LinkButton(text: String, icon: ImageVector, enabled: Boolean = true,
 }
 
 @Composable
-private fun CheckItem(label: String, ready: Boolean) {
+private fun CheckItem(label: String, ready: Boolean, warning: Boolean = false) {
+    // Green: ready. Yellow: not ready, but it doesn't stop you playing. Red: not ready and blocks Play.
+    val yellow = !ready && warning
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .background(if (ready) Color(0xFF4F9A3C) else Color(0xFFB13A2A), CircleShape)
-                .border(2.dp, if (ready) Color(0xFF1D3A16) else Color(0xFF4A1710), CircleShape),
+                .background(
+                    when {
+                        ready -> Color(0xFF4F9A3C)
+                        yellow -> Color(0xFFD9A441)
+                        else -> Color(0xFFB13A2A)
+                    },
+                    CircleShape,
+                )
+                .border(
+                    2.dp,
+                    when {
+                        ready -> Color(0xFF1D3A16)
+                        yellow -> Color(0xFF6B4E14)
+                        else -> Color(0xFF4A1710)
+                    },
+                    CircleShape,
+                ),
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(text = label, fontSize = 13.sp, color = if (ready) WowCream else Color(0xFFE0A050))
