@@ -301,6 +301,7 @@ fun WoWForeverScreen(
 
     val filesMissing = !(files.dataExists && files.buildInfoExists)
     val canPlay = !isLaunching && !isUpdating && !filesMissing && !files.isWrongGame
+    val busy = isLaunching || isUpdating
 
     fun performUpdate() {
         val target = versionStatus ?: return
@@ -322,7 +323,8 @@ fun WoWForeverScreen(
                 checkFiles()
                 versionStatus = versionStatus?.copy(isOutdated = false, localVersion = target.remoteVersion)
                 isUpdating = false
-                launchGame()
+                // Stay on the launcher after an update: the Play button is ready when you are.
+                updateStatusText = ""
             } catch (e: Exception) {
                 Timber.e(e, "Error updating game")
                 if (e.isPermissionDenied()) denyStorageAccess()
@@ -605,46 +607,47 @@ fun WoWForeverScreen(
                             onClick = ::launchGame,
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        LinkButton("Refresh Status", Icons.Default.Refresh) {
-                            checkFiles()
-                            checkVersionStatus()
-                            checkAppUpdate(manual = true)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LinkButton("Refresh Status", Icons.Default.Refresh, enabled = !busy) {
+                        checkFiles()
+                        checkVersionStatus()
+                        checkAppUpdate(manual = true)
+                    }
+                    if (!filesMissing) {
+                        LinkButton("Change Location", Icons.Default.FolderOpen, enabled = !busy) { folderPicker.launch(null) }
+                    }
+                    if (autoLogin) {
+                        LinkButton(
+                            text = if (hasSavedLogin) "Update Login" else "Configure Login",
+                            icon = Icons.Default.Key,
+                            enabled = !busy,
+                        ) {
+                            showLoginDialog = true
                         }
-                        if (!filesMissing) {
-                            LinkButton("Change Location", Icons.Default.FolderOpen) { folderPicker.launch(null) }
-                        }
-                        if (autoLogin) {
-                            LinkButton(
-                                text = if (hasSavedLogin) "Update Login" else "Configure Login",
-                                icon = Icons.Default.Key,
-                            ) {
-                                showLoginDialog = true
-                            }
-                            if (hasSavedLogin) {
-                                LinkButton("Forget Saved Login", Icons.Default.Delete) {
-                                    BattleNetSignIn.forget(context)
-                                    BattleNetSignIn.removeLoginFile(File(gamePath))
-                                    hasSavedLogin = false
-                                }
-                            }
-                            LinkButton("Turn Off Auto-Login", Icons.Default.Delete) {
+                        if (hasSavedLogin) {
+                            LinkButton("Forget Saved Login", Icons.Default.Delete, enabled = !busy) {
                                 BattleNetSignIn.forget(context)
                                 BattleNetSignIn.removeLoginFile(File(gamePath))
-                                BattleNetSignIn.setAutoLoginEnabled(context, false)
                                 hasSavedLogin = false
-                                autoLogin = false
                             }
-                        } else {
-                            LinkButton("Turn On Auto-Login", Icons.Default.Key) {
-                                showLoginDialog = true
-                            }
+                        }
+                        LinkButton("Turn Off Auto-Login", Icons.Default.Delete, enabled = !busy) {
+                            BattleNetSignIn.forget(context)
+                            BattleNetSignIn.removeLoginFile(File(gamePath))
+                            BattleNetSignIn.setAutoLoginEnabled(context, false)
+                            hasSavedLogin = false
+                            autoLogin = false
+                        }
+                    } else {
+                        LinkButton("Turn On Auto-Login", Icons.Default.Key, enabled = !busy) {
+                            showLoginDialog = true
                         }
                     }
                 }
@@ -1018,11 +1021,12 @@ private fun PrimaryButton(text: String, icon: ImageVector, enabled: Boolean, onC
 }
 
 @Composable
-private fun LinkButton(text: String, icon: ImageVector, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = WowFrame)
+private fun LinkButton(text: String, icon: ImageVector, enabled: Boolean = true, onClick: () -> Unit) {
+    val tint = if (enabled) WowFrame else WowFrame.copy(alpha = 0.4f)
+    TextButton(onClick = onClick, enabled = enabled) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = tint)
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text, fontSize = 12.sp, color = WowFrame)
+        Text(text, fontSize = 12.sp, color = tint)
     }
 }
 
