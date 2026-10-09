@@ -1,17 +1,19 @@
 # AYN Thor WoW Launcher
 
-> **A fork of [WoW Forever for Android](https://github.com/jaredgei/wow-forever-android) by [jaredgei](https://github.com/jaredgei).** The WoW launcher, the single-container setup, native ARM64 launch and the bundled runtime all come from jaredgei's project, which is itself a fork of GameNative. This fork adds Retail and Classic support, a styled launcher, a second-screen button pad with settings, controller cursor mode and a themed in-game menu for the AYN Thor. Please star and support the original.
+> **A fork of [WoW Forever for Android](https://github.com/jaredgei/wow-forever-android) by [jaredgei](https://github.com/jaredgei).** The WoW launcher, the single-container setup, native ARM64 launch and the bundled runtime all come from jaredgei's project, which is itself a fork of GameNative. This fork adds Retail, Classic Era, TBC Anniversary and MoP Classic support, a styled launcher, a second-screen button pad with settings, controller cursor mode and a themed in-game menu for the AYN Thor. Please star and support the original.
 
 
-Play **World of Warcraft** on Snapdragon Android handhelds as a normal Android app, with extra work for the dual-screen **AYN Thor**. Pick **Forever**, **Retail** or **Classic**, press Play, and the game runs.
+Play **World of Warcraft** on Snapdragon Android handhelds as a normal Android app, with extra work for the dual-screen **AYN Thor**. Pick **Forever**, **Retail** or **Classic** (Classic Era, TBC Anniversary or MoP Classic), press Play, and the game runs.
 
 This uses Blizzard's own **Windows ARM64** WoW clients, so the game itself runs natively on the device's CPU. Wine translates the Windows calls, and DXVK plus a patched Turnip Vulkan driver render the game on the Adreno GPU. Nothing is emulated as x86.
 
 ### Highlights of this fork
 
-- **Three clients in one app:** Forever (beta), Retail and Classic, each with its own game folder, in-app updates and Play button.
-- **Thor second-screen button pad:** a touch pad on the bottom screen with a trackpad, keyboard, hotbar-style buttons, window shortcuts (Map, Character, Spellbook, Bags, Group Finder and more), modifier and F-keys, and a full settings page. See [The Thor button pad](#the-thor-button-pad).
-- **Controller mouse mode:** the right stick becomes a cursor on R3, with A/B as clicks and an adjustable speed ramp.
+- **Five clients in one app:** Forever (beta), Retail, Classic Era, TBC Anniversary and MoP Classic, each with its own game folder, in-app updates and Play button. Tap **Classic** and a second row opens with the three Classic clients. The ARM64 clients for TBC Anniversary and MoP Classic download from Blizzard's CDN and run fine.
+- **Per-game switches on the main screen:** the Thor button pad, forcing WoW's gamepad UI, and R3 mouse/camera toggling can each be set separately for every client.
+- **Thor second-screen button pad:** a touch pad on the bottom screen with a trackpad, keyboard, hotbar-style buttons, window shortcuts (Map, Character, Spellbook, Bags, Group Finder and more), modifier and F-keys, a scroll area, a Gboard-style keyboard, and a full settings page. Every button can be remapped and renamed. See [The Thor button pad](#the-thor-button-pad).
+- **Controller mouse mode:** the right stick becomes a cursor on R3, with A/B as clicks, Y/X as scroll up/down and an adjustable speed ramp. R3 toggling can be switched off per game, and then R3 stays a normal button press.
+- **App updates you control:** the app updates from this repo's releases, with an opt-in for beta builds and an option to skip automatic app updates.
 - **World of Warcraft look:** a stone-and-gold launcher and in-game quick menu, with the chosen client named on the Play button and boot screen.
 - **Its own app:** package `app.aynthorwow`, so it installs next to jaredgei's original WoW Forever app, GameNative and Winlator.
 
@@ -47,7 +49,7 @@ Download the APK from the [latest release](https://github.com/wyattabuntjer/AYN-
 
 ### 2. Copy your WoW game data to the device (one-time setup)
 
-Each client keeps its own folder. Forever uses `/storage/emulated/0/WoW Forever/` by default; Retail and Classic use `/storage/emulated/0/World of Warcraft/` (inside it: `_retail_` and `_classic_era_`). You only need the clients you plan to play. The steps below show Forever; Retail and Classic work the same way with their own install. Copy two things from your Battle.net install (on a Mac that's `/Applications/World of Warcraft/`) into a folder on the device. The default is `/storage/emulated/0/WoW Forever/`. Any other folder works too, including one on an SD card. You only need to do this **once**; all subsequent game updates are handled directly in-app over Wi-Fi.
+Each client keeps its own folder. Forever uses `/storage/emulated/0/WoW Forever/` by default; Retail and the Classic clients use `/storage/emulated/0/World of Warcraft/` (inside it: `_retail_`, `_classic_era_`, `_anniversary_` for TBC Anniversary and `_classic_` for MoP Classic). You only need the clients you plan to play. The steps below show Forever; the others work the same way with their own install. Copy two things from your Battle.net install (on a Mac that's `/Applications/World of Warcraft/`) into a folder on the device. The default is `/storage/emulated/0/WoW Forever/`. Any other folder works too, including one on an SD card. You only need to do this **once**; all subsequent game updates are handled directly in-app over Wi-Fi.
 
 ```
 WoW Forever/
@@ -72,17 +74,21 @@ WOW_SRC="/Applications/World of Warcraft" tools/sync_wow_to_device.sh
 
 ### 3. Play
 
-Open the app. Pick **Forever**, **Retail** or **Classic** at the top of the launcher, set up your Battle.net login once, and press **PLAY**. The Play button and boot screen name the client that is starting. If a client's game files aren't found, the launcher shows **Locate Game Files**. The first launch of each client downloads its ARM64 build and sets up the Windows environment, which takes a few minutes and needs an internet connection.
+Open the app. Pick **Forever**, **Retail** or **Classic** at the top of the launcher. **Classic** opens a second row with **Classic Era**, **TBC Anniversary** and **MoP Classic**. Set up your Battle.net login once, and press **PLAY**. The Play button and boot screen name the client that is starting.
+
+Under the client buttons are three switches that are remembered separately for each client: **Action button pad** (the Thor second-screen pad, on by default), **Force gamepad UI** and **R3 toggles mouse / camera**. Below the readiness checklist, grey lines turn on beta app updates and skip automatic app updates. If a client's game files aren't found, the launcher shows **Locate Game Files**. The first launch of each client downloads its ARM64 build and sets up the Windows environment, which takes a few minutes and needs an internet connection.
 
 - **Setup screen:** to access folder settings, forget credentials, check environment status, or view updates, hold **Start + Select + L2 + R2** (or tap the back button) during the loading splash to cancel boot and return to the setup screen.
 - The app creates a basic `WTF/Config.wtf` on first run and always sets `gxApi "D3D11"`, the renderer that works with DXVK.
+- **Force gamepad UI** is off by default, which leaves the `GamePadEnable` and `InputDeviceInterfaceStyle` lines in `Config.wtf` alone so your in-game choice sticks. Turn it on for a client and the launcher writes both lines to on at every launch. Turning it off later doesn't undo lines already written; change it in-game once.
 
 ### Controls and signing in
 
-- **Cursor mode (R3):** click the right stick to turn it into a mouse cursor. **A** and **B** click (left/right, or swapped, or off in the pad settings). Speed, ramp and deadzone are adjustable. Click R3 again to go back to normal camera control.
+- **Cursor mode (R3):** click the right stick to turn it into a mouse cursor. **A** and **B** click (left/right, or swapped, or off in the pad settings). **Y** and **X** scroll up and down, with a scroll speed setting and an invert option. Speed, ramp and deadzone are adjustable. Click R3 again to go back to normal camera control.
+  - The **R3 toggles mouse / camera** switch on the main screen turns this off per game. With it off, R3 is a regular button press, and the R3 section of the pad settings is hidden. Profiles can't change this switch during play.
 - **Controller:** built-in handheld controllers work in-game. WoW's own gamepad mode handles the mapping.
 - **In-game menu:** press Back (the button or the back swipe gesture) to open the sidebar. It has **Keyboard**, on-screen controls, performance overlay and **Exit**.
-- **Keyboard:** the sidebar's **Keyboard** opens the Android keyboard. On dual-screen devices like the Thor it appears on the bottom screen. Symbols like `@` work, and so does pasting.
+- **Keyboard:** the sidebar's **Keyboard** opens the Android keyboard. On dual-screen devices like the Thor it appears on the bottom screen. Symbols like `@` work, and so does pasting. The button pad also has its own on-screen keyboard laid out like Gboard (number row, QWERTY, a `?123` symbols page, `/` on the main page for chat commands).
 - **Battle.net Auto-Login:** configure credentials directly on the launcher setup screen (**Configure Login** / **Update Login**). Credentials are saved encrypted on-device via Android Keystore. On boot, the launcher generates `_classic_beta_/login.txt`, which the WoW client automatically reads on startup to sign in natively without macro simulation or synthetic clicks. Use **Forget Saved Login** on the launcher setup screen to clear credentials and remove the login file.
   - Authenticator codes still have to be entered by hand.
 
@@ -90,16 +96,18 @@ Open the app. Pick **Forever**, **Retail** or **Classic** at the top of the laun
 
 ## The Thor button pad
 
-On the AYN Thor the bottom screen shows a touch pad while you play. The header has three buttons: **trackpad**, **settings (gear)** and **keyboard**.
+On the AYN Thor the bottom screen shows a touch pad while you play. The header has three buttons: **trackpad**, **settings (gear)** and **keyboard**. The pad can be switched on or off per client with the **Action button pad** switch on the main screen.
 
-- **Trackpad:** a touch mouse with Shift, Ctrl and Alt always available.
-- **Buttons:** hotbar numbers, F-keys, modifiers and window shortcuts (Map, Character, Spellbook, Talents, Skills, Quest Log, Social, System, Bags, Group Finder, Achievements, Guild). When more than eight window buttons are shown, they split into two columns.
+- **Trackpad:** a touch mouse with Shift, Ctrl and Alt always available, left and right click buttons, and a **scroll area** along one edge: slide a finger up or down to scroll. Its side, speed and direction are adjustable and it can be turned off.
+- **Buttons:** hotbar numbers, F-keys, modifiers and window shortcuts (Map, Character, Spellbook, Talents, Skills, Quest Log, Social, System, Bags, Group Finder, Achievements, Guild). Every window button shows on every client, including ones a client doesn't have, because any button can be renamed and remapped. When more than eight window buttons are shown, they split into two columns.
+- **Keyboard:** a Gboard-style on-screen keyboard with a number row, shift and caps, and a `?123` symbols page with arrow keys.
 - **Settings page** (the gear) lets you change:
   - which modifier keys, window buttons and pad sections are shown (the rest resize to fill the space)
-  - F1-F6 or F1-F12, swap left/right sides, hotbar pages, label size, haptics and double-tap lock time
-  - trackpad speed, acceleration and tap-to-click
-  - right-stick cursor speed, ramp, deadzone and A/B click mode
-  - remapping of any button, three saved profiles, backup to the clipboard, and reset
+  - how many F-keys show (any number from F1-F3 up to F1-F12), swap left/right sides, hotbar pages, label size, haptics and double-tap lock time
+  - trackpad speed, acceleration, tap-to-click and the scroll area
+  - right-stick cursor speed, ramp, deadzone, A/B click mode and Y/X scroll (shown only when R3 toggling is on)
+  - **remap and rename:** tap any window, number or F-key button to choose the key it sends, or give it a new name (up to 12 characters) typed on the on-screen keyboard. Shift, Ctrl, Alt and the trackpad click buttons are fixed. Use **Reset all remaps** or **Reset all names** to undo.
+  - three saved profiles (with Save / Overwrite), backup to the clipboard, and reset
   - which client launches next, and a helper for `Config.wtf`
 
 ---
@@ -117,7 +125,7 @@ Whenever Blizzard patches the game:
 
 *(Optional fallback: If you ever want to re-seed or mirror your full PC installation over USB, `tools/sync_wow_to_device.sh` is still available.)*
 
-The app itself updates from this repo's releases: when a newer release with an APK is published, the launcher offers it.
+The app itself updates from this repo's releases: when a newer release with an APK is published, the launcher offers it. An app update never launches the game by itself. Two options sit at the bottom of the launcher screen: **Beta app updates** (also offers pre-releases such as `2.4.1b`) and **Skip automatic app updates** (stops the automatic check; **Refresh Status** still checks on demand).
 
 ---
 
@@ -127,7 +135,7 @@ The app itself updates from this repo's releases: when a newer release with an A
 | :--- | :--- |
 | *CAS system was unable to initialize: no active install info entries* | `.build.info` or `_classic_beta_/.flavor.info` is missing on the device. |
 | *No realms available* / no servers listed | The device client is out of date. Tap **Update** on the launcher setup screen, or restart the app with Wi-Fi enabled. |
-| Retail or Classic won't start | Support for these is newer and less tested than Forever. Check `_retail_/Errors/` or `_classic_era_/Errors/` and open an issue with what you find. |
+| Retail, Classic Era, TBC Anniversary or MoP Classic won't start | Support for these is newer and less tested than Forever. Check the client's `Errors/` folder (`_retail_`, `_classic_era_`, `_anniversary_` or `_classic_`) and open an issue with what you find. |
 | Keyboard doesn't appear | Force-stop Gboard (Settings → Apps → Gboard → Force stop) and open **Keyboard** again. It can get stuck on the second screen. |
 | Returns to the launcher after "Launching Game…" | Check the files under `_classic_beta_/Errors/` on the device. |
 | Handheld frontend (e.g. Cocoon) shows the wrong icon | The frontend cached an old icon. Set it with the frontend's "Edit App Artwork", or reinstall the app. |
@@ -169,10 +177,12 @@ Full third-party license details are in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTI
 
 ### What this fork adds on top of WoW Forever for Android
 
-- Forever, Retail and Classic selectable from the launcher, each with its own game folder and in-app updates.
+- Forever, Retail, Classic Era, TBC Anniversary and MoP Classic selectable from the launcher, each with its own game folder and in-app updates.
+- Per-client switches for the button pad, forcing the gamepad UI and R3 mouse/camera toggling.
 - A stone-and-gold launcher theme and quick menu, and the selected client named on the Play button and boot screen.
-- Second-screen button pad with a settings page: grouped buttons, window shortcuts, modifier and F-key options, remapping, profiles, and trackpad and stick tuning.
-- Right-stick cursor mode on R3 with A/B clicks and a speed ramp.
+- Second-screen button pad with a settings page: grouped buttons, window shortcuts, modifier and F-key options, remapping and renaming of every button, profiles, a trackpad scroll area, a Gboard-style keyboard, and trackpad and stick tuning.
+- Right-stick cursor mode on R3 with A/B clicks, Y/X scrolling and a speed ramp.
+- An updater with beta opt-in and a skip-automatic-updates option.
 - Its own package name (`app.aynthorwow`) and an updater that follows this repo's releases.
 
 ### What WoW Forever for Android changes from GameNative
