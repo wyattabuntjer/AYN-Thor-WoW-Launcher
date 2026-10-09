@@ -216,6 +216,10 @@ fun WoWForeverScreen(
 
     fun launchGame() {
         if (isLaunching || files.isWrongGame) return
+        if (!loginReady) {
+            showLoginDialog = true
+            return
+        }
         if (!files.hasStorageAccess) {
             showStoragePermissionDialog = true
             return
@@ -300,7 +304,9 @@ fun WoWForeverScreen(
     }
 
     val filesMissing = !(files.dataExists && files.buildInfoExists)
-    val canPlay = !isLaunching && !isUpdating && !filesMissing && !files.isWrongGame
+    val canUpdate = !isLaunching && !isUpdating && !filesMissing && !files.isWrongGame
+    // The game won't start until auto-login is set up or switched off.
+    val canPlay = canUpdate && loginReady
     val busy = isLaunching || isUpdating
 
     fun performUpdate() {
@@ -580,7 +586,7 @@ fun WoWForeverScreen(
                             PrimaryButton(
                                 text = "UPDATE TO ${versionStatus?.remoteVersion}",
                                 icon = Icons.Default.Refresh,
-                                enabled = canPlay,
+                                enabled = canUpdate,
                                 onClick = ::performUpdate,
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -599,6 +605,12 @@ fun WoWForeverScreen(
                             icon = Icons.Default.FolderOpen,
                             enabled = !isLaunching && !isUpdating,
                             onClick = { StorageUtils.requestManageExternalStoragePermission(context) },
+                        )
+                        !loginReady -> PrimaryButton(
+                            text = "SET UP LOGIN TO PLAY",
+                            icon = Icons.Default.Key,
+                            enabled = canUpdate,
+                            onClick = { showLoginDialog = true },
                         )
                         else -> PrimaryButton(
                             text = if (files.isWrongGame) "${flavor.label.uppercase()} INSTALL REQUIRED" else "PLAY ${flavor.shortName.uppercase()}",
