@@ -359,18 +359,28 @@ class ExternalPadSettingsView(
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(8), 0, 0, 0)
-        addView(label("Profile $slot"))
-        addView(
-            button("Save") {
-                PadSettings.saveProfile(slot)
-                status.text = "Saved to profile $slot"
-            },
-        )
+        val name = label("", widthDp = 150)
+        addView(name)
+        lateinit var saveButton: Button
+        // "Save" for an empty slot, "Overwrite" once a profile is stored there.
+        fun refresh() {
+            val used = PadSettings.hasProfile(slot)
+            name.text = if (used) "Profile $slot (saved)" else "Profile $slot (empty)"
+            saveButton.text = if (used) "Overwrite" else "Save"
+        }
+        saveButton = button("Save") {
+            val replaced = PadSettings.hasProfile(slot)
+            PadSettings.saveProfile(slot)
+            status.text = if (replaced) "Profile $slot overwritten" else "Saved to profile $slot"
+            refresh()
+        }
+        addView(saveButton)
         addView(
             button("Load") {
                 if (PadSettings.loadProfile(slot)) showMain() else status.text = "Profile $slot is empty"
             },
         )
+        refresh()
     }
 
     private fun flavorRow(): LinearLayout = LinearLayout(context).apply {
