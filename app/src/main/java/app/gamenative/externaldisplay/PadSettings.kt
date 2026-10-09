@@ -55,9 +55,6 @@ object PadSettings {
     const val SCROLL_INVERT = "scroll_invert"
     const val MODE_MESSAGE = "mode_message"
 
-    /** Config.wtf gamepad lines: 0 = launcher forces on, 1 = leave alone, 2 = launcher forces off. */
-    const val GAMEPAD_UI = "gamepad_ui"
-
     /** Every window button the pad can show. Each has an on/off setting, on by default. */
     val WINDOW_LABELS = listOf(
         "Map", "Character", "Spellbook", "Talents", "Skills", "Quest Log", "Social", "System",
@@ -99,7 +96,6 @@ object PadSettings {
         SCROLL_SPEED to 5,
         SCROLL_INVERT to false,
         MODE_MESSAGE to true,
-        GAMEPAD_UI to 1,
     )
         .apply { WINDOW_LABELS.forEach { put(windowKey(it), true) } }
 

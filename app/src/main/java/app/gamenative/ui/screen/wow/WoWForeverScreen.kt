@@ -1,6 +1,5 @@
 package app.gamenative.ui.screen.wow
 
-import app.gamenative.externaldisplay.PadSettings
 import android.content.Context
 import android.os.Build
 import android.os.Environment
@@ -97,7 +96,8 @@ fun WoWForeverScreen(
     val gpu = remember { GpuProfile.detect(context) }
 
     var flavor by remember { mutableStateOf(WowFlavor.load(context)) }
-    var buttonPad by remember { mutableStateOf(ButtonPad.isEnabled(context)) }
+    var buttonPad by remember { mutableStateOf(ButtonPad.isEnabled(context, flavor)) }
+    var forceGamepadUi by remember { mutableStateOf(ButtonPad.forceGamepadUi(context, flavor)) }
     var gamePath by remember { mutableStateOf(GamePath.load(context)) }
     var files by remember { mutableStateOf(GamePath.Status()) }
     var isLaunching by remember { mutableStateOf(false) }
@@ -117,10 +117,6 @@ fun WoWForeverScreen(
     var appUpdate by remember { mutableStateOf<AppUpdater.Release?>(null) }
     var betaUpdates by remember { mutableStateOf(AppUpdater.betaEnabled(context)) }
     var skipAutoUpdates by remember { mutableStateOf(AppUpdater.skipAutoUpdates(context)) }
-    var gamepadUi by remember {
-        PadSettings.init(context)
-        mutableStateOf(PadSettings.int(PadSettings.GAMEPAD_UI))
-    }
     var isDownloadingAppUpdate by remember { mutableStateOf(false) }
     var appUpdateProgress by remember { mutableFloatStateOf(0f) }
     var showAppUpdateDialog by remember { mutableStateOf(false) }
@@ -201,6 +197,8 @@ fun WoWForeverScreen(
         if (selected == flavor || isLaunching || isUpdating) return
         WowFlavor.select(context, selected)
         flavor = selected
+        buttonPad = ButtonPad.isEnabled(context, selected)
+        forceGamepadUi = ButtonPad.forceGamepadUi(context, selected)
         errorMessage = null
         versionStatus = null
         gamePath = GamePath.load(context)
@@ -419,14 +417,25 @@ fun WoWForeverScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 FlavorSelector(selected = flavor, enabled = !isLaunching && !isUpdating, onSelect = { selectFlavor(it) })
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Action button pad (second screen)", fontSize = 12.sp, color = WowMuted)
+                    Text(text = "Action button pad", fontSize = 12.sp, color = WowMuted)
                     Spacer(modifier = Modifier.width(8.dp))
                     Switch(
                         checked = buttonPad,
                         enabled = !isLaunching,
                         onCheckedChange = {
                             buttonPad = it
-                            ButtonPad.setEnabled(context, it)
+                            ButtonPad.setEnabled(context, flavor, it)
+                        },
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = "Force gamepad UI", fontSize = 12.sp, color = WowMuted)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = forceGamepadUi,
+                        enabled = !isLaunching,
+                        onCheckedChange = {
+                            forceGamepadUi = it
+                            ButtonPad.setForceGamepadUi(context, flavor, it)
                         },
                     )
                 }
@@ -703,19 +712,6 @@ fun WoWForeverScreen(
                         skipAutoUpdates = !skipAutoUpdates
                         AppUpdater.setSkipAutoUpdates(context, skipAutoUpdates)
                         if (skipAutoUpdates) appUpdate = null
-                    }
-                    .padding(vertical = 8.dp),
-            )
-            Text(
-                text = "Gamepad UI: ${GAMEPAD_UI_LABELS[gamepadUi.coerceIn(0, 2)]} (tap to change)",
-                fontSize = 11.sp,
-                color = WowSubtle,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        gamepadUi = (gamepadUi + 1) % 3
-                        PadSettings.set(PadSettings.GAMEPAD_UI, gamepadUi)
                     }
                     .padding(vertical = 8.dp),
             )
@@ -1131,12 +1127,23 @@ private fun CheckItem(label: String, ready: Boolean, warning: Boolean = false) {
 /** The 12-button action bar pad on the second display. On by default; the launcher switch turns it off. */
 private object ButtonPad {
     private const val PREFS = "wow_forever"
-    private const val KEY = "button_pad"
 
-    fun isEnabled(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, true)
+    // Per game, so each flavor remembers its own switches. The pad is on for every game by default.
+    private fun padKey(flavor: WowFlavor) = "button_pad_${flavor.name}"
+    private fun gamepadKey(flavor: WowFlavor) = "force_gamepad_ui_${flavor.name}"
 
-    fun setEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, enabled).apply()
+    fun isEnabled(context: Context, flavor: WowFlavor) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(padKey(flavor), true)
+
+    fun setEnabled(context: Context, flavor: WowFlavor, enabled: Boolean) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(padKey(flavor), enabled).apply()
+
+    /** On: the launcher writes the gamepad lines into Config.wtf each launch. Off: it leaves them alone. */
+    fun forceGamepadUi(context: Context, flavor: WowFlavor) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(gamepadKey(flavor), false)
+
+    fun setForceGamepadUi(context: Context, flavor: WowFlavor, enabled: Boolean) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(gamepadKey(flavor), enabled).apply()
 }
 
 private class StorageAccessDeniedException(cause: Throwable) : Exception(cause)
@@ -1173,8 +1180,7 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
 
     check(File(gameRoot, BUILD_INFO).exists()) { "Missing $BUILD_INFO in $gameRoot. Copy it from your WoW install." }
     try {
-        PadSettings.init(context)
-        ensureGameConfig(gameRoot, PadSettings.int(PadSettings.GAMEPAD_UI))
+        ensureGameConfig(gameRoot, if (ButtonPad.forceGamepadUi(context, WowFlavor.current)) 0 else 1)
     } catch (e: Exception) {
         if (e.isPermissionDenied()) throw StorageAccessDeniedException(e)
         throw e
@@ -1212,7 +1218,7 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
     val container = checkNotNull(containerManager.getContainerById(CONTAINER_ID)) { "Container creation failed. Check system storage and logs." }
     // Second display (if any) shows the 12-button action bar pad when its switch is on.
     container.setExternalDisplayMode(
-        if (ButtonPad.isEnabled(context)) Container.EXTERNAL_DISPLAY_MODE_BUTTONS
+        if (ButtonPad.isEnabled(context, WowFlavor.current)) Container.EXTERNAL_DISPLAY_MODE_BUTTONS
         else Container.EXTERNAL_DISPLAY_MODE_OFF,
     )
     container.saveData()
@@ -1277,7 +1283,6 @@ private val CONFIG_DEFAULTS get() = linkedMapOf(
     "InputDeviceInterfaceStyle" to "\"1\"",
 )
 
-private val GAMEPAD_UI_LABELS = listOf("Force on", "Leave alone", "Force off")
 private val ALWAYS_FORCED_CONFIG_KEYS = listOf("gxApi", "RenderScale", "ResampleQuality")
 private val GAMEPAD_CONFIG_KEYS = listOf("GamePadEnable", "InputDeviceInterfaceStyle")
 
