@@ -110,6 +110,7 @@ class ExternalPadSettingsView(
         }
         section("Game and app") {
             addView(flavorRow())
+            addView(cycleRow("Gamepad UI (applies next launch)", PadSettings.GAMEPAD_UI, listOf("Force on", "Leave alone", "Force off")))
             val status = note("")
             addView(
                 rowOf(

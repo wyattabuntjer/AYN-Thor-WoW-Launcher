@@ -1,5 +1,6 @@
 package app.gamenative.ui.screen.wow
 
+import app.gamenative.externaldisplay.PadSettings
 import android.content.Context
 import android.os.Build
 import android.os.Environment
@@ -1124,7 +1125,8 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
 
     check(File(gameRoot, BUILD_INFO).exists()) { "Missing $BUILD_INFO in $gameRoot. Copy it from your WoW install." }
     try {
-        ensureGameConfig(gameRoot)
+        PadSettings.init(context)
+        ensureGameConfig(gameRoot, PadSettings.int(PadSettings.GAMEPAD_UI))
     } catch (e: Exception) {
         if (e.isPermissionDenied()) throw StorageAccessDeniedException(e)
         throw e
@@ -1227,7 +1229,8 @@ private val CONFIG_DEFAULTS get() = linkedMapOf(
     "InputDeviceInterfaceStyle" to "\"1\"",
 )
 
-private val FORCED_CONFIG_KEYS = listOf("gxApi", "RenderScale", "ResampleQuality", "GamePadEnable", "InputDeviceInterfaceStyle")
+private val ALWAYS_FORCED_CONFIG_KEYS = listOf("gxApi", "RenderScale", "ResampleQuality")
+private val GAMEPAD_CONFIG_KEYS = listOf("GamePadEnable", "InputDeviceInterfaceStyle")
 
 private val LEGACY_CONFIG_VALUES = mapOf(
     "farclip" to "\"3000\"",
@@ -1242,8 +1245,12 @@ private val LEGACY_CONFIG_VALUES = mapOf(
     "RAIDcomponentTextureLevel" to "\"1\"",
 )
 
-private fun ensureGameConfig(root: File) {
-    val defaults = CONFIG_DEFAULTS
+/** [gamepadMode]: 0 = force gamepad UI on, 1 = leave the player's lines alone, 2 = force off. */
+private fun ensureGameConfig(root: File, gamepadMode: Int) {
+    val defaults = CONFIG_DEFAULTS.also { d ->
+        if (gamepadMode == 2) GAMEPAD_CONFIG_KEYS.forEach { d[it] = "\"0\"" }
+    }
+    val forcedKeys = if (gamepadMode == 1) ALWAYS_FORCED_CONFIG_KEYS else ALWAYS_FORCED_CONFIG_KEYS + GAMEPAD_CONFIG_KEYS
     val flavorDir = File(root, FLAVOR_DIR)
     flavorDir.mkdirs()
     val flavorInfo = File(flavorDir, ".flavor.info")
@@ -1264,7 +1271,7 @@ private fun ensureGameConfig(root: File) {
         if (parts?.size != 2) return@map line
         val (key, value) = parts
         existingKeys.add(key)
-        val forcedKey = FORCED_CONFIG_KEYS.firstOrNull { it.equals(key, ignoreCase = true) }
+        val forcedKey = forcedKeys.firstOrNull { it.equals(key, ignoreCase = true) }
         when {
             forcedKey != null && value != defaults.getValue(forcedKey) -> "SET $forcedKey ${defaults.getValue(forcedKey)}"
             LEGACY_CONFIG_VALUES[key] == value -> "SET $key ${defaults.getValue(key)}"
