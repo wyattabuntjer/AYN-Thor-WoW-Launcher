@@ -66,6 +66,7 @@ import app.gamenative.ui.enums.DialogType
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.ui.model.MainViewModel
 import app.gamenative.ui.screen.PluviaScreen
+import app.gamenative.ui.screen.wow.BattleNetSignIn
 import app.gamenative.ui.screen.wow.GamePath
 import app.gamenative.ui.screen.wow.WoWForeverScreen
 import app.gamenative.ui.screen.wow.WoWLauncherState
@@ -390,6 +391,10 @@ fun PluviaMain(
                             viewModel.onWindowMapped(context, window, state.launchedAppId)
                         },
                         onExit = { onComplete ->
+                            // Remove the plain-text login file as soon as the game closes.
+                            CoroutineScope(Dispatchers.IO).launch {
+                                BattleNetSignIn.removeLoginFile(File(GamePath.load(context)))
+                            }
                             viewModel.exitApp(context, state.launchedAppId, onComplete)
                         },
                         onGameLaunchError = { error ->
