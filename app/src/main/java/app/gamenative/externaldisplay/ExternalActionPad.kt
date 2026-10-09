@@ -203,20 +203,16 @@ class ExternalActionPad(
      */
     private fun buildTextEntryPanel(): LinearLayout {
         val m = (10 * density).toInt()
-        textPrompt = TextView(context).apply {
-            setTextColor(theme.text)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            typeface = theme.typeface
-            gravity = Gravity.CENTER
-        }
+        textPrompt = TextView(context)
         textPreview = TextView(context).apply {
             setTextColor(theme.text)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             typeface = theme.typeface
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_VERTICAL
             maxLines = 1
             background = theme.groupBackground(density, strong = true)
-            setPadding(m, m, m, m)
+            setPadding(m, 0, m, 0)
+            layoutParams = LayoutParams(0, (52 * density).toInt(), 3f).apply { setMargins(m / 2, 0, m / 2, 0) }
         }
         fun actionButton(text: String, onClick: () -> Unit) = TextView(context).apply {
             this.text = text
@@ -242,15 +238,16 @@ class ExternalActionPad(
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             visibility = View.GONE
             isClickable = true
-            addView(textPrompt, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m, m, m, m / 2) })
-            addView(textPreview, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m, 0, m, m) })
+            // One compact bar: the typed text, Cancel and OK. This leaves the full keyboard on screen.
             addView(
                 LinearLayout(context).apply {
                     orientation = HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(textPreview)
                     addView(actionButton("Cancel") { finishTextEntry(false) })
                     addView(actionButton("OK") { finishTextEntry(true) })
                 },
-                LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m, 0, m, 0) },
+                LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m / 2, m / 2, m / 2, 0) },
             )
             addView(View(context), LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             addView(textKeyboard)
@@ -258,7 +255,14 @@ class ExternalActionPad(
     }
 
     private fun refreshTextPreview() {
-        textPreview.text = textBuffer.toString() + "▏"
+        // With nothing typed yet, the box shows what the name is for.
+        if (textBuffer.isEmpty()) {
+            textPreview.text = textPrompt.text
+            textPreview.alpha = 0.55f
+        } else {
+            textPreview.text = textBuffer.toString() + "▏"
+            textPreview.alpha = 1f
+        }
     }
 
     private fun openTextEntry(prompt: String, initial: String, max: Int, done: (String) -> Unit) {
