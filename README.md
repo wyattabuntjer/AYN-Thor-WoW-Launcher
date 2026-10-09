@@ -43,44 +43,48 @@ Requirements:
 
 ## Installation
 
+You need a PC or Mac with World of Warcraft installed through Battle.net, and an Android device from the [supported list](#supported-devices) with about 80 GB free (internal storage or an SD card).
+
 ### 1. Install the app
 
-Download the APK from the [latest release](https://github.com/wyattabuntjer/AYN-Thor-WoW-Launcher/releases/latest) and install it on your device (allow "install unknown apps" for your browser or file manager if Android asks). Newer builds are also available as a downloadable artifact on the latest green run in the repo's **Actions** tab. The app's package name is `app.aynthorwow`, so it can sit alongside jaredgei's original WoW Forever app, GameNative and Winlator.
+Download **WoWLauncher.apk** from the [releases page](https://github.com/wyattabuntjer/AYN-Thor-WoW-Launcher/releases/latest) onto your Android device and install it. If Android asks, allow installs from your browser or file manager.
 
-### 2. Copy your WoW game data to the device (one-time setup)
+### 2. Get the game installed on your PC or Mac
 
-Each client keeps its own folder. Forever uses `/storage/emulated/0/WoW Forever/` by default; Retail and the Classic clients use `/storage/emulated/0/World of Warcraft/` (inside it: `_retail_`, `_classic_era_`, `_anniversary_` for TBC Anniversary and `_classic_` for MoP Classic). You only need the clients you plan to play. The steps below show Forever; the others work the same way with their own install. Copy two things from your Battle.net install (on a Mac that's `/Applications/World of Warcraft/`) into a folder on the device. The default is `/storage/emulated/0/WoW Forever/`. Any other folder works too, including one on an SD card. You only need to do this **once**; all subsequent game updates are handled directly in-app over Wi-Fi.
+Install every version of World of Warcraft you want to play on Android (Retail, Classic Era, TBC Anniversary, MoP Classic and so on) through the Battle.net app.
 
-```
-WoW Forever/
-├── .build.info                   <- from the install root
-└── Data/                         <- the whole Data folder (~67 GB)
-```
+> **Important:** you can't choose which versions go into the files you copy in the next step. Whatever is installed gets copied. If a version is installed that you **don't** want on your Android device, uninstall it before you copy anything.
 
-- `Data/` is the same on every platform, so a Mac, Windows, or ARM install all work.
-- `.build.info` is a hidden file. Copy it too. Without it the game fails with *"CAS system was unable to initialize"*.
-- You don't need `WowB-ARM64.exe`. Mac and x86 installs don't ship it, so the app downloads the matching Windows ARM64 client from Blizzard's CDN when you press Play, and checks its hashes.
-- If you used a different folder, or moved it, the launcher shows **Locate Game Files**. Pick the folder that contains `.build.info` and `Data/`. **Change Location** switches it later.
+### 3. Copy the game data to your Android device
 
-Transfer the files over to a `WoW/` folder on your device. You can do this by:
+From your computer's World of Warcraft folder, copy these two items onto the Android device:
 
-- **SD Card:** Insert the microSD card into your computer and copy the files over (make sure your file manager shows hidden files so `.build.info` is included).
-- **USB File Transfer:** Connect your device to your computer via USB (in File Transfer / MTP mode) and copy the files directly to internal storage (default: `/storage/emulated/0/WoW/`).
-- **ADB Script:** If you have ADB installed and this repo checked out, you can use the sync script to copy initial files easily over USB:
+- the **`Data`** folder
+- the **`.build.info`** file
 
-```bash
-WOW_SRC="/Applications/World of Warcraft" tools/sync_wow_to_device.sh
-```
+The World of Warcraft folder is normally here:
 
-### 3. Play
+| Computer | Default location |
+| :--- | :--- |
+| Windows | `C:\Program Files (x86)\World of Warcraft\` |
+| Mac | `/Applications/World of Warcraft/` |
 
-Open the app. Pick **Forever**, **Retail** or **Classic** at the top of the launcher. **Classic** opens a second row with **Classic Era**, **TBC Anniversary** and **MoP Classic**. Set up your Battle.net login once, and press **PLAY**. The Play button and boot screen name the client that is starting.
+Put them anywhere on the device, just remember where. I recommend creating a **WoW** folder in the device's main storage or on an SD card, and putting both inside it.
 
-Under the client buttons are three switches that are remembered separately for each client: **Action button pad** (the Thor second-screen pad, on by default), **Force gamepad UI** and **R3 toggles mouse / camera**. Below the readiness checklist, grey lines turn on beta app updates and skip automatic app updates. If a client's game files aren't found, the launcher shows **Locate Game Files**. The first launch of each client downloads its ARM64 build and sets up the Windows environment, which takes a few minutes and needs an internet connection.
+- `.build.info` is a hidden file. Turn on hidden files (Windows: View → Show → Hidden items; Mac: press **Cmd + Shift + .** in Finder) so you can see and copy it. Without it, the game won't start.
+- You can copy over USB (set the device to File Transfer mode) or with a microSD card.
 
-- **Setup screen:** to access folder settings, forget credentials, check environment status, or view updates, hold **Start + Select + L2 + R2** (or tap the back button) during the loading splash to cancel boot and return to the setup screen.
-- The app creates a basic `WTF/Config.wtf` on first run and always sets `gxApi "D3D11"`, the renderer that works with DXVK.
-- **Force gamepad UI** is off by default, which leaves the `GamePadEnable` and `InputDeviceInterfaceStyle` lines in `Config.wtf` alone so your in-game choice sticks. Turn it on for a client and the launcher writes both lines to on at every launch. Turning it off later doesn't undo lines already written; change it in-game once.
+### 4. Open the app and point it at your files
+
+1. Open the app. When it asks for the game files, tap **Locate Game Files** and choose the folder that contains `Data` and `.build.info`.
+2. Give the app the storage permission it asks for.
+3. Set up your Battle.net auto-login, or turn auto-login off.
+
+### 5. Press Play
+
+Pick your game at the top of the screen (**Classic** opens Classic Era, TBC Anniversary and MoP Classic) and press **PLAY**. The first launch of each game downloads its ARM64 client and sets up the Windows environment. That takes a few minutes and needs an internet connection. After that, game updates happen inside the app.
+
+- **Setup screen:** to open folder settings, forget credentials or check status, hold **Start + Select + L2 + R2** (or tap the back button) during the loading splash to cancel boot and return to the setup screen.
 
 ### Controls and signing in
 
