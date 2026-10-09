@@ -102,6 +102,9 @@ fun WoWForeverScreen(
     var isLaunching by remember { mutableStateOf(false) }
     var launchJob by remember { mutableStateOf<Job?>(null) }
     var hasSavedLogin by remember { mutableStateOf(BattleNetSignIn.load(context) != null) }
+    var autoLogin by remember { mutableStateOf(BattleNetSignIn.autoLoginEnabled(context)) }
+    // Ready to play: either a login is saved, or auto-login is off and you sign in by hand.
+    val loginReady = hasSavedLogin || !autoLogin
     var showLoginDialog by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf(READY_STATUS) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -226,6 +229,8 @@ fun WoWForeverScreen(
                 }
                 statusText = "Booting into ${flavor.gameName}..."
                 onLaunch(containerId)
+                // login.txt holds the password in plain text: remove it a minute after the game starts.
+                if (BattleNetSignIn.autoLoginEnabled(context)) BattleNetSignIn.scheduleLoginFileRemoval(File(gamePath))
             } catch (e: CancellationException) {
                 throw e
             } catch (_: StorageAccessDeniedException) {
@@ -324,13 +329,15 @@ fun WoWForeverScreen(
     }
 
     LaunchedEffect(gamePath) {
+        // A previous run may have been killed before the login file was removed.
+        withContext(Dispatchers.IO) { BattleNetSignIn.removeLoginFile(File(gamePath)) }
         val ready = checkFiles()
         if (!files.hasStorageAccess && (files.dataExists || files.buildInfoExists)) {
             showStoragePermissionDialog = true
         }
         Timber.i("WoWForeverScreen LaunchedEffect: gamePath=$gamePath, ready=$ready, hasSavedLogin=$hasSavedLogin, shouldAutoLaunch=${WoWLauncherState.shouldAutoLaunch}")
         when {
-            !ready || !hasSavedLogin -> {
+            !ready || !loginReady -> {
                 WoWLauncherState.shouldAutoLaunch = false
                 PluviaApp.events.emit(AndroidEvent.ClearBootingSplash)
                 if (ready) {
@@ -424,8 +431,12 @@ fun WoWForeverScreen(
                         )
                         CheckItem(label = "All Files Access Permission", ready = files.hasStorageAccess)
                         CheckItem(
-                            label = if (hasSavedLogin) "Battle.net Login (Configured)" else "Battle.net Login (Configure below play button)",
-                            ready = hasSavedLogin,
+                            label = when {
+                                !autoLogin -> "Battle.net Login (Auto-login off, sign in by hand)"
+                                hasSavedLogin -> "Battle.net Login (Configured)"
+                                else -> "Battle.net Login (Configure below, or turn off auto-login)"
+                            },
+                            ready = loginReady,
                         )
                         appUpdate?.let {
                             CheckItem(
@@ -605,17 +616,30 @@ fun WoWForeverScreen(
                         if (!filesMissing) {
                             LinkButton("Change Location", Icons.Default.FolderOpen) { folderPicker.launch(null) }
                         }
-                        LinkButton(
-                            text = if (hasSavedLogin) "Update Login" else "Configure Login",
-                            icon = Icons.Default.Key,
-                        ) {
-                            showLoginDialog = true
-                        }
-                        if (hasSavedLogin) {
-                            LinkButton("Forget Saved Login", Icons.Default.Delete) {
+                        if (autoLogin) {
+                            LinkButton(
+                                text = if (hasSavedLogin) "Update Login" else "Configure Login",
+                                icon = Icons.Default.Key,
+                            ) {
+                                showLoginDialog = true
+                            }
+                            if (hasSavedLogin) {
+                                LinkButton("Forget Saved Login", Icons.Default.Delete) {
+                                    BattleNetSignIn.forget(context)
+                                    BattleNetSignIn.removeLoginFile(File(gamePath))
+                                    hasSavedLogin = false
+                                }
+                            }
+                            LinkButton("Turn Off Auto-Login", Icons.Default.Delete) {
                                 BattleNetSignIn.forget(context)
                                 BattleNetSignIn.removeLoginFile(File(gamePath))
+                                BattleNetSignIn.setAutoLoginEnabled(context, false)
                                 hasSavedLogin = false
+                                autoLogin = false
+                            }
+                        } else {
+                            LinkButton("Turn On Auto-Login", Icons.Default.Key) {
+                                showLoginDialog = true
                             }
                         }
                     }
@@ -632,7 +656,9 @@ fun WoWForeverScreen(
             onConfirm = { login ->
                 showLoginDialog = false
                 BattleNetSignIn.save(context, login)
+                BattleNetSignIn.setAutoLoginEnabled(context, true)
                 hasSavedLogin = true
+                autoLogin = true
             },
         )
     }
@@ -1032,8 +1058,12 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
     }
 
     val flavor = WowFlavor.current
-    BattleNetSignIn.load(context)?.let { login ->
-        BattleNetSignIn.writeLoginFile(gameRoot, login)
+    if (BattleNetSignIn.autoLoginEnabled(context)) {
+        BattleNetSignIn.load(context)?.let { login ->
+            BattleNetSignIn.writeLoginFile(gameRoot, login)
+        }
+    } else {
+        BattleNetSignIn.removeLoginFile(gameRoot)
     }
     if (!flavor.exeFile(gameRoot).exists()) {
         try {
