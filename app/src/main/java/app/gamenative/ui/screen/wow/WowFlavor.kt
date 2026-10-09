@@ -35,8 +35,8 @@ enum class WowFlavor(
         defaultFolder = "World of Warcraft",
     ),
     CLASSIC_ERA(
-        label = "Classic",
-        subtitle = "CLASSIC (ARM64 NATIVE)",
+        label = "Classic Era",
+        subtitle = "CLASSIC ERA (ARM64 NATIVE)",
         product = "wow_classic_era",
         dir = "_classic_era_",
         // Names are a best guess modelled on Retail's. exeFile() falls back to any ARM64 .exe in the
@@ -45,15 +45,39 @@ enum class WowFlavor(
         portal = "us",
         defaultFolder = "World of Warcraft",
     ),
+    CLASSIC_ANNIVERSARY(
+        label = "BC Anniversary",
+        subtitle = "BURNING CRUSADE ANNIVERSARY (ARM64 NATIVE)",
+        product = "wow_anniversary",
+        dir = "_anniversary_",
+        // Best-guess names; exeFile() falls back to any ARM64 .exe in the folder.
+        exeNames = listOf("WowClassic-ARM64.exe", "WowClassicArm64.exe", "WowClassic-arm64.exe"),
+        portal = "us",
+        defaultFolder = "World of Warcraft",
+    ),
+    CLASSIC_MOP(
+        label = "MoP Classic",
+        subtitle = "MISTS OF PANDARIA CLASSIC (ARM64 NATIVE)",
+        product = "wow_classic",
+        dir = "_classic_",
+        exeNames = listOf("WowClassic-ARM64.exe", "WowClassicArm64.exe", "WowClassic-arm64.exe"),
+        portal = "us",
+        defaultFolder = "World of Warcraft",
+    ),
     ;
+
+    /** True for the three Classic products, which share the Classic button and its second row. */
+    val isClassic get() = this == CLASSIC_ERA || this == CLASSIC_ANNIVERSARY || this == CLASSIC_MOP
 
     val exeName get() = exeNames.first()
 
-    /** Short name for the launch screens: Forever, Retail or Classic. */
+    /** Short name for the launch screens: Forever, Retail or one of the Classic products. */
     val shortName get() = when (this) {
         FOREVER -> "Forever"
         RETAIL -> "Retail"
-        CLASSIC_ERA -> "Classic"
+        CLASSIC_ERA -> "Classic Era"
+        CLASSIC_ANNIVERSARY -> "BC Anniversary"
+        CLASSIC_MOP -> "MoP Classic"
     }
 
     /** Full name shown while the game boots. */

@@ -267,9 +267,9 @@ class ExternalActionBarView(
             Slot("System", XKeycode.KEY_ESC),
             // Windows that Classic Era's client doesn't have.
             Slot("Bags", XKeycode.KEY_B),
-            Slot("Group Finder", XKeycode.KEY_I, hiddenIn = setOf(WowFlavor.CLASSIC_ERA)),
-            Slot("Achievements", XKeycode.KEY_Y, hiddenIn = setOf(WowFlavor.CLASSIC_ERA)),
-            Slot("Guild", XKeycode.KEY_J, hiddenIn = setOf(WowFlavor.CLASSIC_ERA)),
+            Slot("Group Finder", XKeycode.KEY_I, hiddenIn = setOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY)),
+            Slot("Achievements", XKeycode.KEY_Y, hiddenIn = setOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY)),
+            Slot("Guild", XKeycode.KEY_J, hiddenIn = setOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY)),
         )
 
         private val FUNCTION_KEYS = listOf(

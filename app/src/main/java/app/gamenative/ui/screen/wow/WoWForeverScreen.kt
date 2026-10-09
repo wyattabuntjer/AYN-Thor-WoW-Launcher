@@ -986,31 +986,62 @@ private fun WowPanel(
 
 @Composable
 private fun FlavorSelector(selected: WowFlavor, enabled: Boolean, onSelect: (WowFlavor) -> Unit) {
-    val entries = WowFlavor.entries
-    Row(modifier = Modifier.alpha(if (enabled) 1f else 0.5f)) {
-        entries.forEachIndexed { index, flavor ->
-            val isSelected = flavor == selected
+    // Top row: Forever, Retail, Classic. Tapping Classic opens a second row with the three Classic products.
+    val top = listOf(WowFlavor.FOREVER, WowFlavor.RETAIL, WowFlavor.CLASSIC_ERA)
+    val classic = listOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY, WowFlavor.CLASSIC_MOP)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.alpha(if (enabled) 1f else 0.5f)) {
+        FlavorButtonRow(
+            items = top,
+            text = { if (it.isClassic) "CLASSIC" else it.shortName.uppercase() },
+            isSelected = { if (it.isClassic) selected.isClassic else it == selected },
+            enabled = enabled,
+            onSelect = { if (it.isClassic && selected.isClassic) Unit else onSelect(it) },
+        )
+        if (selected.isClassic) {
+            Spacer(modifier = Modifier.height(6.dp))
+            FlavorButtonRow(
+                items = classic,
+                text = { it.shortName.uppercase() },
+                isSelected = { it == selected },
+                enabled = enabled,
+                onSelect = onSelect,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FlavorButtonRow(
+    items: List<WowFlavor>,
+    text: (WowFlavor) -> String,
+    isSelected: (WowFlavor) -> Boolean,
+    enabled: Boolean,
+    onSelect: (WowFlavor) -> Unit,
+) {
+    Row {
+        items.forEachIndexed { index, flavor ->
+            val selected = isSelected(flavor)
             val shape = when (index) {
                 0 -> RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-                entries.lastIndex -> RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+                items.lastIndex -> RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
                 else -> RoundedCornerShape(0.dp)
             }
-            val faces = if (isSelected) listOf(WowBronze, Color(0xFF462C0C)) else listOf(Color(0xFF28201A), Color(0xFF16110E))
+            val faces = if (selected) listOf(WowBronze, Color(0xFF462C0C)) else listOf(Color(0xFF28201A), Color(0xFF16110E))
             Box(
                 modifier = Modifier
                     .background(Brush.verticalGradient(faces), shape)
-                    .border(2.dp, if (isSelected) WowFrame else WowFrameInner, shape)
+                    .border(2.dp, if (selected) WowFrame else WowFrameInner, shape)
                     .clickable(enabled = enabled) { onSelect(flavor) }
                     .padding(horizontal = 18.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    flavor.shortName.uppercase(),
+                    text(flavor),
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = if (isSelected) Color(0xFFFFECB4) else WowMuted,
+                    color = if (selected) Color(0xFFFFECB4) else WowMuted,
                 )
             }
         }
