@@ -201,9 +201,12 @@ object PadSettings {
 
     // Reset, profiles, export and import.
 
+    /** Settings the launcher sets per game at launch. Profiles and resets leave them alone during play. */
+    private val LAUNCH_ONLY = setOf(R3_TOGGLE)
+
     fun resetAll() {
         prefs?.edit()?.apply {
-            DEFAULTS.keys.forEach { remove(it) }
+            DEFAULTS.keys.filter { it !in LAUNCH_ONLY }.forEach { remove(it) }
             remove(REMAP)
             remove(RENAME)
         }?.apply()
@@ -212,7 +215,7 @@ object PadSettings {
 
     /** Every setting and the remap list as one JSON object. */
     fun snapshot(): JSONObject = JSONObject().apply {
-        DEFAULTS.keys.forEach { key ->
+        DEFAULTS.keys.filter { it !in LAUNCH_ONLY }.forEach { key ->
             if (DEFAULTS[key] is Boolean) put(key, bool(key)) else put(key, int(key))
         }
         put(REMAP, remapJson())
@@ -223,7 +226,7 @@ object PadSettings {
     fun applySnapshot(json: JSONObject) {
         val editor = prefs?.edit() ?: return
         DEFAULTS.forEach { (key, def) ->
-            if (!json.has(key)) return@forEach
+            if (key in LAUNCH_ONLY || !json.has(key)) return@forEach
             if (def is Boolean) editor.putBoolean(key, json.optBoolean(key, def))
             else editor.putInt(key, json.optInt(key, def as Int))
         }

@@ -100,15 +100,18 @@ class ExternalPadSettingsView(
             addView(cycleRow("Scroll area side", PadSettings.SCROLLBAR_SIDE, listOf("Right", "Left")))
             addView(sliderRow("Scroll area speed", PadSettings.SCROLLBAR_SPEED, 1, 10) { "$it" })
         }
-        section("Right-stick cursor (R3)") {
-            addView(sliderRow("Base speed", PadSettings.STICK_BASE, 5, 30) { tenths(it) })
-            addView(sliderRow("Max speed", PadSettings.STICK_MAX, 10, 50) { tenths(it) })
-            addView(sliderRow("Ramp starts at", PadSettings.STICK_RAMP, 50, 99) { "$it%" })
-            addView(sliderRow("Stick deadzone", PadSettings.STICK_DEADZONE, 5, 40) { "$it%" })
-            addView(cycleRow("A / B in cursor mode", PadSettings.AB_MODE, listOf("Off", "A left, B right", "A right, B left")))
-            addView(toggleRow(listOf("Y / X scroll in cursor mode" to PadSettings.SCROLL_KEYS, "Invert Y / X scroll" to PadSettings.SCROLL_INVERT)))
-            addView(sliderRow("Scroll speed", PadSettings.SCROLL_SPEED, 1, 10) { "$it" })
-            addView(toggleRow(listOf("Show mode message" to PadSettings.MODE_MESSAGE)))
+        // Only shown when R3 mouse/camera toggling was switched on at launch (main screen).
+        if (PadSettings.bool(PadSettings.R3_TOGGLE)) {
+            section("Right-stick cursor (R3)") {
+                addView(sliderRow("Base speed", PadSettings.STICK_BASE, 5, 30) { tenths(it) })
+                addView(sliderRow("Max speed", PadSettings.STICK_MAX, 10, 50) { tenths(it) })
+                addView(sliderRow("Ramp starts at", PadSettings.STICK_RAMP, 50, 99) { "$it%" })
+                addView(sliderRow("Stick deadzone", PadSettings.STICK_DEADZONE, 5, 40) { "$it%" })
+                addView(cycleRow("A / B in cursor mode", PadSettings.AB_MODE, listOf("Off", "A left, B right", "A right, B left")))
+                addView(toggleRow(listOf("Y / X scroll in cursor mode" to PadSettings.SCROLL_KEYS, "Invert Y / X scroll" to PadSettings.SCROLL_INVERT)))
+                addView(sliderRow("Scroll speed", PadSettings.SCROLL_SPEED, 1, 10) { "$it" })
+                addView(toggleRow(listOf("Show mode message" to PadSettings.MODE_MESSAGE)))
+            }
         }
         section("Game and app") {
             addView(flavorRow())
