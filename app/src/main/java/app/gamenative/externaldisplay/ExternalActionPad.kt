@@ -76,10 +76,7 @@ class ExternalActionPad(
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         }
         trackpadView = TouchpadView(context, xServer, false).apply {
-            layoutParams = LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f).apply {
-                val m = (10 * density).toInt()
-                setMargins(m, 0, m, m)
-            }
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             background = theme.buttonBackground(density, 16f, active = false)
             touchpadViewProvider()?.let { setSimTouchScreen(it.isSimTouchScreen) }
             // Slower, steadier cursor for precise aiming: no speed-up on fast swipes, and a lower base speed.
@@ -93,7 +90,27 @@ class ExternalActionPad(
         trackpadPanel = LinearLayout(context).apply {
             orientation = VERTICAL
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            addView(trackpadView)
+            // The trackpad plus its thin scroll strip (if enabled) share one slot above the click buttons.
+            addView(
+                FrameLayout(context).apply {
+                    layoutParams = LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f).apply {
+                        val m = (10 * density).toInt()
+                        setMargins(m, 0, m, m)
+                    }
+                    addView(trackpadView)
+                    if (PadSettings.bool(PadSettings.SCROLLBAR_ON)) {
+                        addView(
+                            TrackpadScrollBar(context, theme) { direction -> sendWheel(direction) }.apply {
+                                layoutParams = FrameLayout.LayoutParams((26 * density).toInt(), ViewGroup.LayoutParams.MATCH_PARENT).apply {
+                                    val edge = (4 * density).toInt()
+                                    gravity = if (PadSettings.int(PadSettings.SCROLLBAR_SIDE) == 1) Gravity.START else Gravity.END
+                                    if (gravity == Gravity.START) leftMargin = edge else rightMargin = edge
+                                }
+                            },
+                        )
+                    }
+                },
+            )
             addView(
                 LinearLayout(context).apply {
                     orientation = HORIZONTAL
@@ -217,6 +234,22 @@ class ExternalActionPad(
                     }
                 }
             }
+        }
+    }
+
+    private companion object {
+        /** One wheel notch, as Windows counts it (the same value the X input layer uses). */
+        const val WHEEL_DELTA = 120
+    }
+
+    /** One mouse wheel tick from the scroll strip: +1 scrolls down, -1 scrolls up. Same two paths as the buttons. */
+    private fun sendWheel(direction: Int) {
+        if (xServer.isRelativeMouseMovement()) {
+            xServer.getWinHandler().mouseEvent(MouseEventFlags.WHEEL, 0, 0, if (direction > 0) -WHEEL_DELTA else WHEEL_DELTA)
+        } else {
+            val button = if (direction > 0) Pointer.Button.BUTTON_SCROLL_DOWN else Pointer.Button.BUTTON_SCROLL_UP
+            xServer.injectPointerButtonPress(button)
+            xServer.injectPointerButtonRelease(button)
         }
     }
 
