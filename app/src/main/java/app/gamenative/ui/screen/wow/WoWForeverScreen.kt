@@ -656,7 +656,7 @@ fun WoWForeverScreen(
                                 hasSavedLogin = false
                             }
                         }
-                        LinkButton("Turn Off Auto-Login", Icons.Default.Delete, enabled = !busy) {
+                        LinkButton("Turn Off Auto-Login", KeyOffIcon, enabled = !busy) {
                             BattleNetSignIn.forget(context)
                             BattleNetSignIn.removeLoginFile(File(gamePath))
                             BattleNetSignIn.setAutoLoginEnabled(context, false)
