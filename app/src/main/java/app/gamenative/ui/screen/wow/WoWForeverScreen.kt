@@ -98,10 +98,7 @@ fun WoWForeverScreen(
 
     var flavor by remember { mutableStateOf(WowFlavor.load(context)) }
     var buttonPad by remember { mutableStateOf(ButtonPad.isEnabled(context, flavor)) }
-    var r3Toggle by remember {
-        PadSettings.init(context)
-        mutableStateOf(PadSettings.bool(PadSettings.R3_TOGGLE))
-    }
+    var r3Toggle by remember { mutableStateOf(ButtonPad.r3Toggle(context, flavor)) }
     var forceGamepadUi by remember { mutableStateOf(ButtonPad.forceGamepadUi(context, flavor)) }
     var gamePath by remember { mutableStateOf(GamePath.load(context)) }
     var files by remember { mutableStateOf(GamePath.Status()) }
@@ -204,6 +201,7 @@ fun WoWForeverScreen(
         flavor = selected
         buttonPad = ButtonPad.isEnabled(context, selected)
         forceGamepadUi = ButtonPad.forceGamepadUi(context, selected)
+        r3Toggle = ButtonPad.r3Toggle(context, selected)
         errorMessage = null
         versionStatus = null
         gamePath = GamePath.load(context)
@@ -421,41 +419,24 @@ fun WoWForeverScreen(
                 Text(text = "${gpu.edition} Edition", fontSize = 11.sp, color = WowSubtle)
                 Spacer(modifier = Modifier.height(12.dp))
                 FlavorSelector(selected = flavor, enabled = !isLaunching && !isUpdating, onSelect = { selectFlavor(it) })
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Action button pad", fontSize = 12.sp, color = WowMuted)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = buttonPad,
-                        enabled = !isLaunching,
-                        onCheckedChange = {
-                            buttonPad = it
-                            ButtonPad.setEnabled(context, flavor, it)
-                        },
-                    )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = "Force gamepad UI", fontSize = 12.sp, color = WowMuted)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = forceGamepadUi,
-                        enabled = !isLaunching,
-                        onCheckedChange = {
-                            forceGamepadUi = it
-                            ButtonPad.setForceGamepadUi(context, flavor, it)
-                        },
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "R3 toggles mouse / camera", fontSize = 12.sp, color = WowMuted)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = r3Toggle,
-                        enabled = !isLaunching,
-                        onCheckedChange = {
-                            r3Toggle = it
-                            PadSettings.set(PadSettings.R3_TOGGLE, it)
-                        },
-                    )
-                }
+                LaunchSwitches(
+                    enabled = !isLaunching,
+                    buttonPad = buttonPad,
+                    onButtonPad = {
+                        buttonPad = it
+                        ButtonPad.setEnabled(context, flavor, it)
+                    },
+                    forceGamepadUi = forceGamepadUi,
+                    onForceGamepadUi = {
+                        forceGamepadUi = it
+                        ButtonPad.setForceGamepadUi(context, flavor, it)
+                    },
+                    r3Toggle = r3Toggle,
+                    onR3Toggle = {
+                        r3Toggle = it
+                        ButtonPad.setR3Toggle(context, flavor, it)
+                    },
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -997,6 +978,37 @@ private fun WowPanel(
     }
 }
 
+/** The per-game switches. They sit on one row and wrap onto a second only when the screen is too narrow. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LaunchSwitches(
+    enabled: Boolean,
+    buttonPad: Boolean,
+    onButtonPad: (Boolean) -> Unit,
+    forceGamepadUi: Boolean,
+    onForceGamepadUi: (Boolean) -> Unit,
+    r3Toggle: Boolean,
+    onR3Toggle: (Boolean) -> Unit,
+) {
+    @Composable
+    fun Item(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = label, fontSize = 12.sp, color = WowMuted)
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(checked = checked, enabled = enabled, onCheckedChange = onChange)
+        }
+    }
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Item("Action button pad", buttonPad, onButtonPad)
+        Item("Force gamepad UI", forceGamepadUi, onForceGamepadUi)
+        Item("R3 toggles mouse / camera", r3Toggle, onR3Toggle)
+    }
+}
+
 @Composable
 private fun FlavorSelector(selected: WowFlavor, enabled: Boolean, onSelect: (WowFlavor) -> Unit) {
     // Top row: Forever, Retail, Classic. Tapping Classic opens a second row with the three Classic products.
@@ -1159,6 +1171,19 @@ private object ButtonPad {
     fun forceGamepadUi(context: Context, flavor: WowFlavor) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(gamepadKey(flavor), false)
 
+    private fun r3Key(flavor: WowFlavor) = "r3_toggle_${flavor.name}"
+
+    /** Whether R3 switches between mouse and camera for this game. On by default. */
+    fun r3Toggle(context: Context, flavor: WowFlavor) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(r3Key(flavor), true)
+
+    /** Saves the choice for [flavor] and, since the controller reads the pad setting, applies it now. */
+    fun setR3Toggle(context: Context, flavor: WowFlavor, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(r3Key(flavor), enabled).apply()
+        PadSettings.init(context)
+        PadSettings.set(PadSettings.R3_TOGGLE, enabled)
+    }
+
     fun setForceGamepadUi(context: Context, flavor: WowFlavor, enabled: Boolean) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(gamepadKey(flavor), enabled).apply()
 }
@@ -1197,6 +1222,8 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
 
     check(File(gameRoot, BUILD_INFO).exists()) { "Missing $BUILD_INFO in $gameRoot. Copy it from your WoW install." }
     try {
+        PadSettings.init(context)
+        PadSettings.set(PadSettings.R3_TOGGLE, ButtonPad.r3Toggle(context, WowFlavor.current))
         ensureGameConfig(gameRoot, if (ButtonPad.forceGamepadUi(context, WowFlavor.current)) 0 else 1)
     } catch (e: Exception) {
         if (e.isPermissionDenied()) throw StorageAccessDeniedException(e)
