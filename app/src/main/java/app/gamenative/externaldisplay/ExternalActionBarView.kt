@@ -8,7 +8,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import app.gamenative.ui.screen.wow.WowFlavor
 import com.winlator.xserver.XKeycode
 import com.winlator.xserver.XServer
 
@@ -34,8 +33,7 @@ class ExternalActionBarView(
     private val onKeyTapped: () -> Unit = {},
 ) : LinearLayout(context) {
 
-    /** [hiddenIn]: flavors whose client has no such window, so the button is never shown there. */
-    private data class Slot(val label: String, val key: XKeycode, val hiddenIn: Set<WowFlavor> = emptySet())
+    private data class Slot(val label: String, val key: XKeycode)
 
     private val downKeys = mutableSetOf<XKeycode>()
     private val rightColumn: LinearLayout
@@ -117,9 +115,9 @@ class ExternalActionBarView(
         }
     }
 
-    /** The window buttons to show: switched on in settings and present in the selected client. */
+    /** The window buttons to show: switched on in settings. Every game shows them all, since any button can be renamed. */
     private fun visibleWindows(): List<Slot> = PANELS.filter { slot ->
-        PadSettings.bool(PadSettings.windowKey(slot.label)) && WowFlavor.current !in slot.hiddenIn
+        PadSettings.bool(PadSettings.windowKey(slot.label))
     }
 
     /** Puts the modifier buttons above the action buttons. */
@@ -240,7 +238,7 @@ class ExternalActionBarView(
         /** Every remappable pad button: its label and the key it sends by default. */
         /** Window buttons that exist in the selected client, for the "Window buttons shown" settings. */
         fun availableWindowLabels(): List<String> =
-            PANELS.filter { WowFlavor.current !in it.hiddenIn }.map { it.label }
+            PANELS.map { it.label }
 
         fun remappableButtons(): List<Pair<String, XKeycode>> =
             (PANELS + ACTION_SLOTS + FUNCTION_KEYS).map { it.label to it.key }
@@ -265,11 +263,10 @@ class ExternalActionBarView(
             Slot("Social", XKeycode.KEY_O),
             // Escape opens the game menu ("System") when nothing else is open.
             Slot("System", XKeycode.KEY_ESC),
-            // Windows that Classic Era's client doesn't have.
             Slot("Bags", XKeycode.KEY_B),
-            Slot("Group Finder", XKeycode.KEY_I, hiddenIn = setOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY)),
-            Slot("Achievements", XKeycode.KEY_Y, hiddenIn = setOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY)),
-            Slot("Guild", XKeycode.KEY_J, hiddenIn = setOf(WowFlavor.CLASSIC_ERA, WowFlavor.CLASSIC_ANNIVERSARY)),
+            Slot("Group Finder", XKeycode.KEY_I),
+            Slot("Achievements", XKeycode.KEY_Y),
+            Slot("Guild", XKeycode.KEY_J),
         )
 
         private val FUNCTION_KEYS = listOf(
