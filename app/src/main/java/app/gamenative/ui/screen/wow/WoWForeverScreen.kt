@@ -237,7 +237,7 @@ fun WoWForeverScreen(
                 }
                 statusText = "Booting into ${flavor.gameName}..."
                 onLaunch(containerId)
-                // login.txt holds the password in plain text: remove it a minute after the game starts.
+                // login.txt holds the password in plain text: remove it five minutes after the game starts.
                 if (BattleNetSignIn.autoLoginEnabled(context)) BattleNetSignIn.scheduleLoginFileRemoval(File(gamePath))
             } catch (e: CancellationException) {
                 throw e

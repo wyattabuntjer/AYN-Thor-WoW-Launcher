@@ -107,7 +107,7 @@ object BattleNetSignIn {
     private const val KEY_EMAIL = "email"
     private const val KEY_PASSWORD = "password"
     private const val KEY_AUTO_LOGIN = "auto_login"
-    const val LOGIN_FILE_LIFETIME_MS = 60_000L
+    const val LOGIN_FILE_LIFETIME_MS = 5 * 60_000L
     private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 }
 
