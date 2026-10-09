@@ -52,6 +52,7 @@ class PhysicalControllerHandler(
 
     companion object {
         private const val SCROLL_REPEAT_INTERVAL_MS = 90L
+        private const val CURSOR_SCROLL_BASE_MS = 450
         private const val UNKNOWN_DEVICE_ID = -1
         private const val SEQUENCE_PRESS_MS = 80L
     }
@@ -585,6 +586,12 @@ class PhysicalControllerHandler(
     private fun createScrollRepeatTimerLocked() {
         if (scrollRepeatTimer != null) return
         scrollRepeatTimer = Timer()
+        // Y / X scrolling in cursor mode follows the pad's scroll speed setting (5 = the normal 90 ms).
+        val interval = if (cursorScrollBindings.isNotEmpty()) {
+            (CURSOR_SCROLL_BASE_MS / PadSettings.int(PadSettings.SCROLL_SPEED).coerceIn(1, 10)).toLong()
+        } else {
+            SCROLL_REPEAT_INTERVAL_MS
+        }
         scrollRepeatTimer?.schedule(object : TimerTask() {
             override fun run() {
                 val bindings = synchronized(scrollRepeatLock) {
@@ -592,7 +599,7 @@ class PhysicalControllerHandler(
                 }
                 bindings.forEach { sendScrollPulse(it) }
             }
-        }, SCROLL_REPEAT_INTERVAL_MS, SCROLL_REPEAT_INTERVAL_MS)
+        }, interval, interval)
     }
 
     private fun cancelScrollRepeatTimerLocked() {

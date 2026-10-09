@@ -44,6 +44,7 @@ object PadSettings {
     const val AB_MODE = "ab_mode"
     const val R3_TOGGLE = "r3_toggle"
     const val SCROLL_KEYS = "scroll_keys"
+    const val SCROLL_SPEED = "scroll_speed"
     const val MODE_MESSAGE = "mode_message"
 
     /** Every window button the pad can show. Each has an on/off setting, on by default. */
@@ -80,6 +81,7 @@ object PadSettings {
         AB_MODE to 1,
         R3_TOGGLE to true,
         SCROLL_KEYS to true,
+        SCROLL_SPEED to 5,
         MODE_MESSAGE to true,
     )
         .apply { WINDOW_LABELS.forEach { put(windowKey(it), true) } }

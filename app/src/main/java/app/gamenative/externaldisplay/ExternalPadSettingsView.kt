@@ -102,6 +102,7 @@ class ExternalPadSettingsView(
             addView(sliderRow("Stick deadzone", PadSettings.STICK_DEADZONE, 5, 40) { "$it%" })
             addView(cycleRow("A / B in cursor mode", PadSettings.AB_MODE, listOf("Off", "A left, B right", "A right, B left")))
             addView(toggleRow(listOf("Y / X scroll in cursor mode" to PadSettings.SCROLL_KEYS)))
+            addView(sliderRow("Scroll speed", PadSettings.SCROLL_SPEED, 1, 10) { "$it" })
             addView(toggleRow(listOf("Show mode message" to PadSettings.MODE_MESSAGE)))
         }
         section("Game and app") {
