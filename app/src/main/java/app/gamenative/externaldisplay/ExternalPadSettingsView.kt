@@ -30,6 +30,9 @@ class ExternalPadSettingsView(
     private val theme: PadTheme,
 ) : ScrollView(context) {
 
+    /** Set by the pad: shows the on-screen keyboard to type text (prompt, starting text, max length, result). */
+    var onRequestText: ((String, String, Int, (String) -> Unit) -> Unit)? = null
+
     private val density = resources.displayMetrics.density
     private val content = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
 
@@ -211,7 +214,16 @@ class ExternalPadSettingsView(
             addView(
                 rowOf(
                     button("Back") { showRemap() },
-                    button("Rename", active = PadSettings.renamed(label) != null) { showRename(label, default) },
+                    button("Rename", active = PadSettings.renamed(label) != null) {
+                        onRequestText?.invoke("Name for \"$label\"", PadSettings.renamed(label) ?: "", MAX_NAME) { text ->
+                            PadSettings.setRename(label, text)
+                            showKeyPicker(label, default)
+                        }
+                    },
+                    button("Original name") {
+                        PadSettings.setRename(label, null)
+                        showKeyPicker(label, default)
+                    },
                     button("Default (${keyName(default.name)})") {
                         PadSettings.setRemap(label, null)
                         showRemap()
@@ -233,72 +245,6 @@ class ExternalPadSettingsView(
                     ),
                 )
             }
-        }
-    }
-
-    /** Renames a pad button with a small built-in letter grid (an on-screen keyboard can't open on this display). */
-    private fun showRename(label: String, default: XKeycode) {
-        content.removeAllViews()
-        scrollTo(0, 0)
-        val name = StringBuilder(PadSettings.renamed(label) ?: "")
-        var upper = true
-        val preview = note("")
-        fun refreshPreview() { preview.text = if (name.isEmpty()) "Name: (original: $label)" else "Name: $name" }
-        refreshPreview()
-        section("Rename \"$label\"") {
-            addView(preview)
-            addView(
-                rowOf(
-                    button("Back") { showKeyPicker(label, default) },
-                    button("Save") {
-                        PadSettings.setRename(label, name.toString())
-                        showKeyPicker(label, default)
-                    },
-                    button("Original") {
-                        PadSettings.setRename(label, null)
-                        showKeyPicker(label, default)
-                    },
-                ),
-            )
-        }
-        val letterButtons = mutableListOf<Pair<Button, Char>>()
-        section("Characters") {
-            fun add(c: Char) {
-                if (name.length < MAX_NAME) name.append(c)
-                refreshPreview()
-            }
-            ('a'..'z').chunked(9).forEach { chunk ->
-                addView(
-                    rowOf(
-                        *chunk.map { c ->
-                            button(c.uppercase()) { add(if (upper) c.uppercaseChar() else c) }.also { letterButtons += it to c }
-                        }.toTypedArray(),
-                        filler = 9 - chunk.size,
-                    ),
-                )
-            }
-            ('0'..'9').toList().chunked(10).forEach { chunk ->
-                addView(rowOf(*chunk.map { c -> button("$c") { add(c) } }.toTypedArray()))
-            }
-            addView(
-                rowOf(
-                    button("Aa") {
-                        upper = !upper
-                        letterButtons.forEach { (b, c) -> b.text = if (upper) c.uppercase() else c.toString() }
-                    },
-                    button("Space") { add(' ') },
-                    button("-") { add('-') },
-                    button("/") { add('/') },
-                    button("⌫") {
-                        if (name.isNotEmpty()) name.setLength(name.length - 1)
-                        refreshPreview()
-                    },
-                    button("Clear") {
-                        name.setLength(0)
-                        refreshPreview()
-                    },
-                ),
-            )
         }
     }
 

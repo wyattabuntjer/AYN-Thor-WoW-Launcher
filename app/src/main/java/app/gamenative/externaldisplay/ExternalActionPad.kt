@@ -40,6 +40,7 @@ class ExternalActionPad(
     private lateinit var settingsButton: ImageButton
     private lateinit var settingsView: ExternalPadSettingsView
     private lateinit var keyboardView: ExternalOnScreenKeyboardView
+    private lateinit var textEntryPanel: LinearLayout
     private lateinit var padView: ExternalActionBarView
     private var settingsOpen = false
     private var settingsVersion = 0
@@ -175,15 +176,106 @@ class ExternalActionPad(
             addView(modifierButton("Alt", XKeycode.KEY_ALT_L))
         }
         trackpadPanel.addView(trackpadModifierRow, 1)
+        textEntryPanel = buildTextEntryPanel()
+        settingsView.onRequestText = { prompt, initial, max, done -> openTextEntry(prompt, initial, max, done) }
         val body = FrameLayout(context).apply {
             layoutParams = LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
             addView(padView)
             addView(trackpadPanel)
             addView(keyboardView)
             addView(settingsView)
+            addView(textEntryPanel)
         }
         addView(header)
         addView(body)
+    }
+
+    private lateinit var textPrompt: TextView
+    private lateinit var textPreview: TextView
+    private lateinit var textKeyboard: ExternalOnScreenKeyboardView
+    private val textBuffer = StringBuilder()
+    private var textMax = 12
+    private var textDone: ((String) -> Unit)? = null
+
+    /**
+     * Full-body overlay for typing a short text with the same on-screen keyboard. The space above the
+     * keyboard shows what has been typed so far, with Cancel and OK.
+     */
+    private fun buildTextEntryPanel(): LinearLayout {
+        val m = (10 * density).toInt()
+        textPrompt = TextView(context).apply {
+            setTextColor(theme.text)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            typeface = theme.typeface
+            gravity = Gravity.CENTER
+        }
+        textPreview = TextView(context).apply {
+            setTextColor(theme.text)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+            typeface = theme.typeface
+            gravity = Gravity.CENTER
+            maxLines = 1
+            background = theme.groupBackground(density, strong = true)
+            setPadding(m, m, m, m)
+        }
+        fun actionButton(text: String, onClick: () -> Unit) = TextView(context).apply {
+            this.text = text
+            gravity = Gravity.CENTER
+            setTextColor(theme.text)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            typeface = theme.typeface
+            background = theme.buttonBackground(density, 12f, false, muted = true)
+            layoutParams = LayoutParams(0, (52 * density).toInt(), 1f).apply { setMargins(m / 2, 0, m / 2, 0) }
+            setOnClickListener { PadSettings.haptic(this); onClick() }
+        }
+        textKeyboard = ExternalOnScreenKeyboardView(context, xServer).apply {
+            layoutParams = LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            capture = ExternalOnScreenKeyboardView.Capture(
+                onText = { if (textBuffer.length < textMax) { textBuffer.append(it); refreshTextPreview() } },
+                onBackspace = { if (textBuffer.isNotEmpty()) { textBuffer.setLength(textBuffer.length - 1); refreshTextPreview() } },
+                onEnter = { finishTextEntry(true) },
+            )
+        }
+        return LinearLayout(context).apply {
+            orientation = VERTICAL
+            setBackgroundColor(theme.background)
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            visibility = View.GONE
+            isClickable = true
+            addView(textPrompt, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m, m, m, m / 2) })
+            addView(textPreview, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m, 0, m, m) })
+            addView(
+                LinearLayout(context).apply {
+                    orientation = HORIZONTAL
+                    addView(actionButton("Cancel") { finishTextEntry(false) })
+                    addView(actionButton("OK") { finishTextEntry(true) })
+                },
+                LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(m, 0, m, 0) },
+            )
+            addView(View(context), LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(textKeyboard)
+        }
+    }
+
+    private fun refreshTextPreview() {
+        textPreview.text = textBuffer.toString() + "▏"
+    }
+
+    private fun openTextEntry(prompt: String, initial: String, max: Int, done: (String) -> Unit) {
+        textBuffer.setLength(0)
+        textBuffer.append(initial.take(max))
+        textMax = max
+        textDone = done
+        textPrompt.text = prompt
+        refreshTextPreview()
+        textEntryPanel.visibility = View.VISIBLE
+    }
+
+    private fun finishTextEntry(accept: Boolean) {
+        val done = textDone
+        textDone = null
+        textEntryPanel.visibility = View.GONE
+        if (accept) done?.invoke(textBuffer.toString().trim())
     }
 
     /**
@@ -371,6 +463,7 @@ class ExternalActionPad(
 
     private fun setKeyboard(on: Boolean) {
         if (on) {
+            finishTextEntry(false)
             setTrackpad(false)
             setSettings(false)
         }
@@ -386,6 +479,7 @@ class ExternalActionPad(
      */
     private fun setSettings(on: Boolean) {
         if (on == settingsOpen) return
+        if (!on) finishTextEntry(false)
         if (on) {
             setTrackpad(false)
             setKeyboard(false)

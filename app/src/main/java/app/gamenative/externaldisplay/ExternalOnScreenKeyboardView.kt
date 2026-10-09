@@ -39,6 +39,14 @@ class ExternalOnScreenKeyboardView(
         val button: Button,
     )
 
+    /**
+     * Text-entry mode: keys go to these callbacks instead of the game. Used to type a name for a pad
+     * button. Enter finishes the entry.
+     */
+    class Capture(val onText: (String) -> Unit, val onBackspace: () -> Unit, val onEnter: () -> Unit)
+
+    var capture: Capture? = null
+
     private val keyButtons = mutableListOf<KeyButton>()
     private val downKeys = mutableSetOf<XKeycode>()
     private var shiftState: ShiftState = ShiftState.OFF
@@ -249,6 +257,30 @@ class ExternalOnScreenKeyboardView(
     }
 
     private fun onKeyDown(spec: KeySpec) {
+        capture?.let { cap ->
+            when (spec.action) {
+                Action.SHIFT, Action.SYMBOLS -> Unit
+                Action.BACKSPACE -> cap.onBackspace()
+                Action.ENTER -> cap.onEnter()
+                Action.SPACE -> cap.onText(" ")
+                Action.INPUT -> {
+                    val useShift = spec.sendShifted || when (shiftState) {
+                        ShiftState.OFF -> false
+                        ShiftState.ON -> true
+                        ShiftState.CAPS -> spec.isLetter
+                    }
+                    // Symbol-page keys already show the character they type.
+                    val text = if (useShift && !spec.sendShifted) spec.shiftedLabel ?: spec.normalLabel else spec.normalLabel
+                    cap.onText(text)
+                    if (shiftState == ShiftState.ON) {
+                        shiftState = ShiftState.OFF
+                        refreshLabels()
+                    }
+                }
+                else -> Unit
+            }
+            return
+        }
         when (spec.action) {
             Action.SHIFT, Action.SYMBOLS -> Unit
             Action.BACKSPACE -> pressKey(XKeycode.KEY_BKSP)
@@ -275,6 +307,7 @@ class ExternalOnScreenKeyboardView(
     }
 
     private fun onKeyUp(spec: KeySpec, cancel: Boolean) {
+        if (capture != null && spec.action != Action.SHIFT && spec.action != Action.SYMBOLS) return
         when (spec.action) {
             Action.SHIFT -> if (!cancel) cycleShift()
             Action.SYMBOLS -> if (!cancel) post {
