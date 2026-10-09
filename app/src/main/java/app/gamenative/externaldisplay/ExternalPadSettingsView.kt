@@ -74,11 +74,11 @@ class ExternalPadSettingsView(
                     listOf(
                         "Windows" to PadSettings.SEC_WINDOWS,
                         "1-9 0 - =" to PadSettings.SEC_NUMBERS,
-                        "F1-F12" to PadSettings.SEC_FKEYS,
+                        "F-keys" to PadSettings.SEC_FKEYS,
                     ),
                 ),
             )
-            addView(cycleRow("F-keys", PadSettings.FKEY_COUNT, listOf("F1-F12", "F1-F6")))
+            addView(sliderRow("F-keys shown", PadSettings.FKEY_N, 3, 12) { "F1-F$it" })
             addView(toggleRow(listOf("Swap sides (windows on the right)" to PadSettings.SWAP_SIDES)))
             addView(cycleRow("Hotbar pages", PadSettings.HOTBAR_PAGE, listOf("Off", "Shift + number", "Ctrl + number", "Alt + number")))
         }

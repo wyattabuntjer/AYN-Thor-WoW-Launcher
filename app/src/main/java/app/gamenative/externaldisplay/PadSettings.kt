@@ -27,7 +27,10 @@ object PadSettings {
     const val SEC_NUMBERS = "sec_numbers"
     const val SEC_FKEYS = "sec_fkeys"
     const val SWAP_SIDES = "swap_sides"
+    /** Old two-way F-key choice (0 = F1-F12, 1 = F1-F6). Only read to carry it over into [FKEY_N]. */
     const val FKEY_COUNT = "fkey_count"
+    /** How many function keys the pad shows, F1 up to F12 (3 to 12). */
+    const val FKEY_N = "fkey_n"
     const val MUTED = "muted_borders"
     const val EMPHASIS = "number_emphasis"
     const val LABEL_SCALE = "label_scale"
@@ -67,7 +70,7 @@ object PadSettings {
         SEC_NUMBERS to true,
         SEC_FKEYS to true,
         SWAP_SIDES to false,
-        FKEY_COUNT to 0,
+        FKEY_N to 12,
         MUTED to 55,
         EMPHASIS to 100,
         LABEL_SCALE to 100,
@@ -101,6 +104,12 @@ object PadSettings {
 
     fun init(context: Context) {
         if (prefs == null) prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        // Carry over the old F1-F12 / F1-F6 choice.
+        prefs?.let { p ->
+            if (p.contains(FKEY_COUNT) && !p.contains(FKEY_N)) {
+                p.edit().putInt(FKEY_N, if (p.getInt(FKEY_COUNT, 0) == 1) 6 else 12).apply()
+            }
+        }
     }
 
     fun bool(key: String): Boolean {
@@ -189,6 +198,7 @@ object PadSettings {
             if (def is Boolean) editor.putBoolean(key, json.optBoolean(key, def))
             else editor.putInt(key, json.optInt(key, def as Int))
         }
+        if (json.has(FKEY_COUNT) && !json.has(FKEY_N)) editor.putInt(FKEY_N, if (json.optInt(FKEY_COUNT) == 1) 6 else 12)
         json.optJSONObject(REMAP)?.let { editor.putString(REMAP, it.toString()) }
         editor.apply()
         version++
