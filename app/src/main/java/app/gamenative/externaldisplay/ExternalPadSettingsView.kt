@@ -93,9 +93,9 @@ class ExternalPadSettingsView(
             addView(sliderRow("Speed", PadSettings.TP_SPEED, 1, 20) { tenths(it) })
             addView(sliderRow("Acceleration", PadSettings.TP_ACCEL, 10, 30) { tenths(it) })
             addView(toggleRow(listOf("Tap to click" to PadSettings.TP_TAP)))
-            addView(toggleRow(listOf("Scroll bar" to PadSettings.SCROLLBAR_ON)))
-            addView(cycleRow("Scroll bar side", PadSettings.SCROLLBAR_SIDE, listOf("Right", "Left")))
-            addView(sliderRow("Scroll bar speed", PadSettings.SCROLLBAR_SPEED, 1, 10) { "$it" })
+            addView(toggleRow(listOf("Scroll area" to PadSettings.SCROLLBAR_ON, "Invert scroll" to PadSettings.SCROLLBAR_INVERT)))
+            addView(cycleRow("Scroll area side", PadSettings.SCROLLBAR_SIDE, listOf("Right", "Left")))
+            addView(sliderRow("Scroll area speed", PadSettings.SCROLLBAR_SPEED, 1, 10) { "$it" })
         }
         section("Right-stick cursor (R3)") {
             addView(toggleRow(listOf("R3 toggles cursor mode" to PadSettings.R3_TOGGLE)))

@@ -43,6 +43,7 @@ object PadSettings {
     const val SCROLLBAR_ON = "scrollbar_on"
     const val SCROLLBAR_SIDE = "scrollbar_side"
     const val SCROLLBAR_SPEED = "scrollbar_speed"
+    const val SCROLLBAR_INVERT = "scrollbar_invert"
     const val STICK_BASE = "stick_base"
     const val STICK_MAX = "stick_max"
     const val STICK_RAMP = "stick_ramp"
@@ -83,6 +84,7 @@ object PadSettings {
         SCROLLBAR_ON to true,
         SCROLLBAR_SIDE to 0,
         SCROLLBAR_SPEED to 5,
+        SCROLLBAR_INVERT to false,
         STICK_BASE to 10,
         STICK_MAX to 25,
         STICK_RAMP to 90,
