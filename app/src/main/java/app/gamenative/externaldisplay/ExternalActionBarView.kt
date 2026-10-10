@@ -85,7 +85,7 @@ class ExternalActionBarView(
         val numberGroup = group(vertical = true, strong = true).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 4f).apply { setMargins(0, dp(3), 0, dp(3)) }
             orderedSlots(GROUP_NUMBERS, ACTION_SLOTS).chunked(3).forEach {
-                addView(keyRow(it, textSp = 26f, weight = 1f, raised = PadSettings.emphasis > 0f, hotbar = true))
+                addView(keyRow(it, textSp = 26f, weight = 1f, raised = PadSettings.emphasis > 0f))
             }
             if (!PadSettings.bool(PadSettings.SEC_NUMBERS)) visibility = GONE
         }
@@ -154,19 +154,18 @@ class ExternalActionBarView(
         weight: Float,
         muted: Boolean = false,
         raised: Boolean = false,
-        hotbar: Boolean = false,
     ): LinearLayout {
         return LinearLayout(context).apply {
             orientation = HORIZONTAL
             isMotionEventSplittingEnabled = true
             // Rows share the column's height by weight, so everything always fits.
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, weight)
-            slots.forEach { addView(createButton(it, textSp, muted, raised, hotbar)) }
+            slots.forEach { addView(createButton(it, textSp, muted, raised)) }
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private fun createButton(slot: Slot, textSp: Float, muted: Boolean, raised: Boolean, hotbar: Boolean): View {
+    private fun createButton(slot: Slot, textSp: Float, muted: Boolean, raised: Boolean): View {
         return TextView(context).apply {
             text = PadSettings.displayName(slot.label)
             contentDescription = slot.label
@@ -187,7 +186,7 @@ class ExternalActionBarView(
                     MotionEvent.ACTION_DOWN -> {
                         view.isPressed = true
                         PadSettings.haptic(view)
-                        pressKey(keyFor(slot), if (hotbar) hotbarModifier() else null)
+                        pressKey(keyFor(slot))
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         view.isPressed = false
@@ -203,29 +202,14 @@ class ExternalActionBarView(
     private fun keyFor(slot: Slot): XKeycode =
         PadSettings.remapped(slot.label)?.let { name -> runCatching { XKeycode.valueOf(name) }.getOrNull() } ?: slot.key
 
-    /** "Hotbar page": the number buttons also hold Shift, Ctrl or Alt, to reach the other action bars. */
-    private fun hotbarModifier(): XKeycode? = when (PadSettings.int(PadSettings.HOTBAR_PAGE)) {
-        1 -> XKeycode.KEY_SHIFT_L
-        2 -> XKeycode.KEY_CTRL_L
-        3 -> XKeycode.KEY_ALT_L
-        else -> null
-    }
-
-    private val pageModifiers = mutableMapOf<XKeycode, XKeycode>()
-
-    private fun pressKey(key: XKeycode, pageModifier: XKeycode? = null) {
+    private fun pressKey(key: XKeycode) {
         if (!downKeys.add(key)) return
-        if (pageModifier != null) {
-            pageModifiers[key] = pageModifier
-            xServer.injectKeyPress(pageModifier)
-        }
         xServer.injectKeyPress(key)
     }
 
     private fun releaseKey(key: XKeycode) {
         if (!downKeys.remove(key)) return
         xServer.injectKeyRelease(key)
-        pageModifiers.remove(key)?.let { xServer.injectKeyRelease(it) }
         onKeyTapped()
     }
 
@@ -237,8 +221,6 @@ class ExternalActionBarView(
     /** Never leave a key stuck down if the display goes away or the game closes mid-press. */
     override fun onDetachedFromWindow() {
         downKeys.toList().forEach { xServer.injectKeyRelease(it) }
-        pageModifiers.values.forEach { xServer.injectKeyRelease(it) }
-        pageModifiers.clear()
         downKeys.clear()
         super.onDetachedFromWindow()
     }

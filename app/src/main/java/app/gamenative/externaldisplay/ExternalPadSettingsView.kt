@@ -85,7 +85,6 @@ class ExternalPadSettingsView(
             addView(sliderRow("F-keys shown", PadSettings.FKEY_N, 3, 12) { "F1-F$it" })
             addView(toggleRow(listOf("Swap sides (windows on the right)" to PadSettings.SWAP_SIDES)))
             addView(toggleRow(listOf("Swap F-keys and modifier keys" to PadSettings.SWAP_FKEYS_MODS)))
-            addView(cycleRow("Hotbar pages", PadSettings.HOTBAR_PAGE, listOf("Off", "Shift + number", "Ctrl + number", "Alt + number")))
         }
         section("Look and feel", collapsible = true) {
             addView(sliderRow("Muted borders", PadSettings.MUTED, 0, 100) { "$it" })

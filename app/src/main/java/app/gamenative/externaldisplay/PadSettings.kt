@@ -41,7 +41,6 @@ object PadSettings {
     const val LABEL_SCALE = "label_scale"
     const val HAPTICS = "haptics"
     const val DOUBLE_TAP_MS = "double_tap_ms"
-    const val HOTBAR_PAGE = "hotbar_page"
     const val TP_SPEED = "trackpad_speed"
     const val TP_ACCEL = "trackpad_accel"
     const val TP_TAP = "trackpad_tap"
@@ -90,7 +89,6 @@ object PadSettings {
         LABEL_SCALE to 100,
         HAPTICS to 2,
         DOUBLE_TAP_MS to 350,
-        HOTBAR_PAGE to 0,
         TP_SPEED to 7,
         TP_ACCEL to 10,
         TP_TAP to true,
