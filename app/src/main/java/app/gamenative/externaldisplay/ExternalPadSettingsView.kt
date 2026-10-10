@@ -127,7 +127,7 @@ class ExternalPadSettingsView(
             )
             addView(status)
         }
-        section("Remap and rename buttons", collapsible = true) {
+        section("Remap, rename, and recolor buttons", collapsible = true) {
             addView(rowOf(button("Choose a button to remap or rename") { showRemap() }))
         }
         section("Profiles", collapsible = true) {
@@ -198,8 +198,8 @@ class ExternalPadSettingsView(
     private fun showRemap() {
         content.removeAllViews()
         scrollTo(0, 0)
-        section("Remap and rename buttons") {
-            addView(note("Tap a pad button, then choose the key it should send or give it a new name."))
+        section("Remap, rename, and recolor buttons") {
+            addView(note("Tap a pad button, then choose the key it should send, give it a new name, or change its color."))
             addView(
                 rowOf(
                     button("Back") { showMain() },
