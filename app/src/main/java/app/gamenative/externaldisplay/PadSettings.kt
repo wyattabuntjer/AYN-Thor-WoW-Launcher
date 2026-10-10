@@ -77,7 +77,7 @@ object PadSettings {
         SEC_NUMBERS to true,
         SEC_FKEYS to true,
         SWAP_SIDES to false,
-        SWAP_FKEYS_MODS to false,
+        SWAP_FKEYS_MODS to true,
         FKEY_N to 12,
         MUTED to 55,
         EMPHASIS to 100,
