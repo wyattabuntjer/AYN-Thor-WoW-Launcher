@@ -1346,7 +1346,13 @@ private val LEGACY_CONFIG_VALUES = mapOf(
 /** [gamepadMode]: 0 = force gamepad UI on, 1 = leave the player's lines alone, 2 = force off. */
 private fun ensureGameConfig(root: File, gamepadMode: Int) {
     val defaults = CONFIG_DEFAULTS.also { d ->
-        if (gamepadMode == 2) GAMEPAD_CONFIG_KEYS.forEach { d[it] = "\"0\"" }
+        when (gamepadMode) {
+            2 -> GAMEPAD_CONFIG_KEYS.forEach { d[it] = "\"0\"" }
+            // Leave alone: also never add the lines when they're missing. WoW drops settings that are back at
+            // their default from Config.wtf, so turning the gamepad UI off in-game removes these lines, and
+            // adding them back as "1" would switch it on again at every launch.
+            1 -> GAMEPAD_CONFIG_KEYS.forEach { d.remove(it) }
+        }
     }
     val forcedKeys = if (gamepadMode == 1) ALWAYS_FORCED_CONFIG_KEYS else ALWAYS_FORCED_CONFIG_KEYS + GAMEPAD_CONFIG_KEYS
     val flavorDir = File(root, FLAVOR_DIR)
