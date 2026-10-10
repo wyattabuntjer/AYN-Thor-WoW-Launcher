@@ -118,18 +118,6 @@ class ExternalPadSettingsView(
                 addView(toggleRow(listOf("Show mode message" to PadSettings.MODE_MESSAGE)))
             }
         }
-        section("Game and app", collapsible = true) {
-            addView(flavorRow())
-            val status = note("")
-            addView(
-                rowOf(
-                    button("Write gamepad cursor lines to Config.wtf") {
-                        status.text = writeGamepadConfig()
-                    },
-                ),
-            )
-            addView(status)
-        }
         section("Remap, rename, and recolor buttons", collapsible = true) {
             addView(rowOf(button("Choose a button to remap or rename") { showRemap() }))
         }
@@ -547,21 +535,6 @@ class ExternalPadSettingsView(
     /** The layout file sits next to the game data, so it survives reinstalling the app. */
     private fun layoutFile() = File(File(GamePath.load(context)), "WoWPad-layout.json")
 
-    private fun flavorRow(): LinearLayout = LinearLayout(context).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(8), 0, 0, 0)
-        addView(label("Next launch"))
-        addView(
-            button(WowFlavor.current.label) { b ->
-                val all = WowFlavor.entries
-                val next = all[(all.indexOf(WowFlavor.current) + 1) % all.size]
-                WowFlavor.select(context, next)
-                b.text = next.label
-            },
-        )
-    }
-
     // Helpers
 
     private fun tenths(value: Int) = "${value / 10}.${value % 10}"
@@ -582,36 +555,6 @@ class ExternalPadSettingsView(
         "MINUS" -> "-"
         "EQUAL" -> "="
         else -> n.lowercase().replaceFirstChar { it.uppercase() }.takeIf { n.length > 1 } ?: n
-    }
-
-    /**
-     * Makes sure the three cursor lines are in the current client's Config.wtf. WoW reads that file
-     * when it starts, so this applies from the next launch.
-     */
-    private fun writeGamepadConfig(): String {
-        val flavor = WowFlavor.current
-        val file = File(File(GamePath.load(context)), "${flavor.dir}/WTF/Config.wtf")
-        if (!file.exists()) return "No Config.wtf for ${flavor.label} yet. Launch the game once first."
-        return runCatching {
-            val wanted = linkedMapOf(
-                "GamePadCursorAutoEnable" to "\"0\"",
-                "GamePadCursorLeftClick" to "\"PAD1\"",
-                "GamePadCursorRightClick" to "\"PAD2\"",
-            )
-            val seen = mutableSetOf<String>()
-            val lines = file.readLines().map { line ->
-                val key = line.takeIf { it.startsWith("SET ", ignoreCase = true) }?.removePrefix("SET ")?.trim()?.substringBefore(' ')
-                val match = wanted.keys.firstOrNull { it.equals(key, ignoreCase = true) }
-                if (match != null) {
-                    seen.add(match)
-                    "SET $match ${wanted.getValue(match)}"
-                } else {
-                    line
-                }
-            } + wanted.filterKeys { it !in seen }.map { (k, v) -> "SET $k $v" }
-            file.writeText(lines.joinToString("\n") + "\n")
-            "Written for ${flavor.label}. Applies next launch."
-        }.getOrElse { "Couldn't write Config.wtf: ${it.message}" }
     }
 
     private companion object {
