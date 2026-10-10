@@ -118,7 +118,7 @@ class ExternalPadSettingsView(
             }
         }
         section("Remap, rename, and recolor buttons", collapsible = true) {
-            addView(rowOf(button("Choose a button to remap or rename") { showRemap() }))
+            addView(rowOf(button("Choose a button to rename, remap, or recolor") { showRemap() }))
         }
         section("Profiles", collapsible = true) {
             val status = note("")
