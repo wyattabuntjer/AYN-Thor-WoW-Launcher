@@ -127,28 +127,25 @@ enum class WowFlavor(
         var current: WowFlavor = FOREVER
             private set
 
-        /** The region chosen for [current]. Saved per game; US until changed. */
+        /** The region chosen in the launcher. One setting for every game that has a region; US until changed. */
         @Volatile
         var region: WowRegion = WowRegion.US
             private set
 
         private var loaded = false
 
-        private fun regionKey(flavor: WowFlavor) = "region_${flavor.name}"
+        private const val KEY_REGION = "region"
 
-        fun regionFor(context: Context, flavor: WowFlavor): WowRegion =
-            WowRegion.fromCode(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(regionKey(flavor), null))
-
-        fun setRegion(context: Context, flavor: WowFlavor, value: WowRegion) {
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(regionKey(flavor), value.name).apply()
-            if (flavor == current) region = value
+        fun setRegion(context: Context, value: WowRegion) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_REGION, value.name).apply()
+            region = value
         }
 
         fun load(context: Context): WowFlavor {
             if (!loaded) {
                 val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_FLAVOR, null)
                 current = entries.firstOrNull { it.name == saved } ?: FOREVER
-                region = regionFor(context, current)
+                region = WowRegion.fromCode(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_REGION, null))
                 loaded = true
             }
             return current
@@ -156,7 +153,6 @@ enum class WowFlavor(
 
         fun select(context: Context, flavor: WowFlavor) {
             current = flavor
-            region = regionFor(context, flavor)
             loaded = true
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_FLAVOR, flavor.name).apply()
         }

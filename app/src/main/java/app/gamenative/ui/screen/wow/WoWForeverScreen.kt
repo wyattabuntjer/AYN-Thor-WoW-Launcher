@@ -200,7 +200,6 @@ fun WoWForeverScreen(
         if (selected == flavor || isLaunching || isUpdating) return
         WowFlavor.select(context, selected)
         flavor = selected
-        region = WowFlavor.region
         buttonPad = ButtonPad.isEnabled(context, selected)
         forceGamepadUi = ButtonPad.forceGamepadUi(context, selected)
         r3Toggle = ButtonPad.r3Toggle(context, selected)
@@ -715,24 +714,22 @@ fun WoWForeverScreen(
                     }
                     .padding(vertical = 8.dp),
             )
-            if (flavor.hasRegion) {
-                Text(
-                    text = "Region: ${region.name} (tap to change)",
-                    fontSize = 11.sp,
-                    color = WowSubtle,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = !isLaunching && !isUpdating) {
-                            region = region.next
-                            WowFlavor.setRegion(context, flavor, region)
-                            // A different region has its own servers and game build, so check again.
-                            versionStatus = null
-                            checkVersionStatus()
-                        }
-                        .padding(vertical = 8.dp),
-                )
-            }
+            Text(
+                text = "Region: ${region.name} (tap to change)",
+                fontSize = 11.sp,
+                color = WowSubtle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !isLaunching && !isUpdating) {
+                        region = region.next
+                        WowFlavor.setRegion(context, region)
+                        // A different region has its own servers and game build, so check again.
+                        versionStatus = null
+                        checkVersionStatus()
+                    }
+                    .padding(vertical = 8.dp),
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
