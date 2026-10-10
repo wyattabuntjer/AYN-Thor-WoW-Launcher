@@ -101,15 +101,15 @@ class ExternalActionBarView(
             if (!PadSettings.bool(PadSettings.SEC_FKEYS)) visibility = GONE
         }
         rightColumn = column(RIGHT_WEIGHT).apply {
-            // "Swap F-keys and modifiers" puts the F-keys on top and the modifier keys at the bottom.
+            // F-keys on top and modifier keys at the bottom by default; "Swap F-keys and modifier keys" reverses that.
             if (PadSettings.bool(PadSettings.SWAP_FKEYS_MODS)) {
-                addView(functionGroup)
-                addView(numberGroup)
                 addView(modifierGroup)
+                addView(numberGroup)
+                addView(functionGroup)
             } else {
-                addView(modifierGroup)
-                addView(numberGroup)
                 addView(functionGroup)
+                addView(numberGroup)
+                addView(modifierGroup)
             }
         }
         // "Swap sides" puts the window column on the right.

@@ -30,7 +30,7 @@ object PadSettings {
     const val SEC_NUMBERS = "sec_numbers"
     const val SEC_FKEYS = "sec_fkeys"
     const val SWAP_SIDES = "swap_sides"
-    /** Puts the F-keys above the number block and the modifier keys below it. */
+    /** Puts the modifier keys above the number block and the F-keys below it (the old order). */
     const val SWAP_FKEYS_MODS = "swap_fkeys_mods"
     /** Old two-way F-key choice (0 = F1-F12, 1 = F1-F6). Only read to carry it over into [FKEY_N]. */
     const val FKEY_COUNT = "fkey_count"
@@ -77,7 +77,7 @@ object PadSettings {
         SEC_NUMBERS to true,
         SEC_FKEYS to true,
         SWAP_SIDES to false,
-        SWAP_FKEYS_MODS to true,
+        SWAP_FKEYS_MODS to false,
         FKEY_N to 12,
         MUTED to 55,
         EMPHASIS to 100,
