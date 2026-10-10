@@ -381,14 +381,17 @@ class ExternalActionPad(
                 background = theme.buttonBackground(density, 12f, pressed || locked, emphasized = locked)
                 setTextColor(if (pressed || locked) theme.textPressed else theme.text)
             }
-            // Same two paths the trackpad itself uses: the Wine mouse in relative mode, X pointer buttons otherwise.
+            // Always go through the X pointer, which keeps its own record of the button and forwards to the Wine
+            // mouse when the game is in relative mode. Pressing in one mode and releasing in the other (the game
+            // switches modes while you drag) used to leave the two out of step, so a hold could drop or stick.
             fun send(down: Boolean) {
-                if (xServer.isRelativeMouseMovement()) {
-                    xServer.getWinHandler().mouseEvent(if (down) downFlag else upFlag, 0, 0, 0)
-                } else if (down) {
+                if (down) {
+                    if (xServer.pointer.isButtonPressed(button)) xServer.injectPointerButtonRelease(button)
                     xServer.injectPointerButtonPress(button)
                 } else {
                     xServer.injectPointerButtonRelease(button)
+                    // If the game is in relative mode now, make sure it hears the release too.
+                    if (xServer.isRelativeMouseMovement()) xServer.getWinHandler().mouseEvent(upFlag, 0, 0, 0)
                 }
             }
             style()
