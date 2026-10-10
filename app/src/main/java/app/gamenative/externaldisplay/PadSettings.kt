@@ -241,6 +241,13 @@ object PadSettings {
         prefs?.edit()?.putString(PROFILE_PREFIX + slot, snapshot().toString())?.apply()
     }
 
+    /** Which saved profile a game loads at launch: 0 = none (keep the pad as it is), else a slot. Kept per game, outside profiles. */
+    fun launchProfile(game: String): Int = prefs?.getInt("launch_profile_$game", 0) ?: 0
+
+    fun setLaunchProfile(game: String, slot: Int) {
+        prefs?.edit()?.putInt("launch_profile_$game", slot)?.apply()
+    }
+
     fun hasProfile(slot: Int): Boolean = prefs?.contains(PROFILE_PREFIX + slot) == true
 
     fun loadProfile(slot: Int): Boolean {

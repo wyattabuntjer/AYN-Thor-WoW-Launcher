@@ -130,6 +130,7 @@ class ExternalPadSettingsView(
         }
         section("Profiles") {
             val status = note("")
+            addView(launchProfileRow())
             for (slot in 1..PadSettings.PROFILE_SLOTS) {
                 addView(profileRow(slot, status))
             }
@@ -379,6 +380,23 @@ class ExternalPadSettingsView(
             addView(bar)
             addView(valueText)
         }
+
+    /** Picks the profile this game loads at launch (None keeps the pad as it is). */
+    private fun launchProfileRow(): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(dp(8), 0, 0, 0)
+        val game = WowFlavor.current
+        fun text(slot: Int) = if (slot == 0) "None" else "Profile $slot"
+        addView(label("Loads at launch for ${game.label}", widthDp = 150))
+        addView(
+            button(text(PadSettings.launchProfile(game.name))) { b ->
+                val next = (PadSettings.launchProfile(game.name) + 1) % (PadSettings.PROFILE_SLOTS + 1)
+                PadSettings.setLaunchProfile(game.name, next)
+                b.text = text(next)
+            },
+        )
+    }
 
     private fun profileRow(slot: Int, status: TextView): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL

@@ -1240,6 +1240,7 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
     check(File(gameRoot, BUILD_INFO).exists()) { "Missing $BUILD_INFO in $gameRoot. Copy it from your WoW install." }
     try {
         PadSettings.init(context)
+        PadSettings.launchProfile(WowFlavor.current.name).takeIf { it > 0 }?.let { PadSettings.loadProfile(it) }
         PadSettings.set(PadSettings.R3_TOGGLE, ButtonPad.r3Toggle(context, WowFlavor.current))
         ensureGameConfig(gameRoot, if (ButtonPad.forceGamepadUi(context, WowFlavor.current)) 0 else 1)
     } catch (e: Exception) {
