@@ -51,10 +51,10 @@ class ExternalPadSettingsView(
         content.removeAllViews()
         scrollTo(0, 0)
 
-        section("Modifier keys shown") {
+        section("Modifier keys shown", collapsible = true) {
             addView(toggleRow(listOf("Shift" to PadSettings.MOD_SHIFT, "Ctrl" to PadSettings.MOD_CTRL, "Alt" to PadSettings.MOD_ALT)))
         }
-        section("Window buttons shown") {
+        section("Window buttons shown", collapsible = true) {
             addView(note("Up to 8 stay in one column. More split it in two."))
             ExternalActionBarView.availableWindowLabels().chunked(3).forEach { chunk ->
                 addView(
@@ -71,7 +71,7 @@ class ExternalPadSettingsView(
                 )
             }
         }
-        section("Pad sections shown") {
+        section("Pad sections shown", collapsible = true) {
             addView(
                 toggleRow(
                     listOf(
@@ -85,14 +85,14 @@ class ExternalPadSettingsView(
             addView(toggleRow(listOf("Swap sides (windows on the right)" to PadSettings.SWAP_SIDES)))
             addView(cycleRow("Hotbar pages", PadSettings.HOTBAR_PAGE, listOf("Off", "Shift + number", "Ctrl + number", "Alt + number")))
         }
-        section("Look and feel") {
+        section("Look and feel", collapsible = true) {
             addView(sliderRow("Muted borders", PadSettings.MUTED, 0, 100) { "$it" })
             addView(sliderRow("Number emphasis", PadSettings.EMPHASIS, 0, 200) { "$it%" })
             addView(sliderRow("Label size", PadSettings.LABEL_SCALE, 80, 140) { "$it%" })
             addView(cycleRow("Haptics", PadSettings.HAPTICS, listOf("Off", "Light", "Normal", "Strong")))
             addView(sliderRow("Double-tap lock", PadSettings.DOUBLE_TAP_MS, 200, 600) { "$it ms" })
         }
-        section("Trackpad") {
+        section("Trackpad", collapsible = true) {
             addView(sliderRow("Speed", PadSettings.TP_SPEED, 1, 20) { tenths(it) })
             addView(sliderRow("Acceleration", PadSettings.TP_ACCEL, 10, 30) { tenths(it) })
             addView(toggleRow(listOf("Tap to click" to PadSettings.TP_TAP)))
@@ -102,7 +102,7 @@ class ExternalPadSettingsView(
         }
         // Only shown when R3 mouse/camera toggling was switched on at launch (main screen).
         if (PadSettings.bool(PadSettings.R3_TOGGLE)) {
-            section("Right-stick cursor (R3)") {
+            section("Right-stick cursor (R3)", collapsible = true) {
                 addView(sliderRow("Base speed", PadSettings.STICK_BASE, 5, 30) { tenths(it) })
                 addView(sliderRow("Max speed", PadSettings.STICK_MAX, 10, 50) { tenths(it) })
                 addView(sliderRow("Ramp starts at", PadSettings.STICK_RAMP, 50, 99) { "$it%" })
@@ -113,7 +113,7 @@ class ExternalPadSettingsView(
                 addView(toggleRow(listOf("Show mode message" to PadSettings.MODE_MESSAGE)))
             }
         }
-        section("Game and app") {
+        section("Game and app", collapsible = true) {
             addView(flavorRow())
             val status = note("")
             addView(
@@ -125,10 +125,10 @@ class ExternalPadSettingsView(
             )
             addView(status)
         }
-        section("Remap and rename buttons") {
+        section("Remap and rename buttons", collapsible = true) {
             addView(rowOf(button("Choose a button to remap or rename") { showRemap() }))
         }
-        section("Profiles") {
+        section("Profiles", collapsible = true) {
             val status = note("")
             addView(launchProfileRow())
             for (slot in 1..PadSettings.PROFILE_SLOTS) {
@@ -136,7 +136,7 @@ class ExternalPadSettingsView(
             }
             addView(status)
         }
-        section("Backup") {
+        section("Backup", collapsible = true) {
             val status = note("")
             addView(
                 rowOf(
@@ -160,7 +160,7 @@ class ExternalPadSettingsView(
             )
             addView(status)
         }
-        section("Reset") {
+        section("Reset", collapsible = true) {
             addView(
                 rowOf(
                     button("Reset to defaults") {
@@ -255,7 +255,7 @@ class ExternalPadSettingsView(
 
     private fun dp(value: Int): Int = (value * density).toInt()
 
-    private fun section(title: String, build: LinearLayout.() -> Unit) {
+    private fun section(title: String, collapsible: Boolean = false, build: LinearLayout.() -> Unit) {
         val group = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background = theme.groupBackground(density, strong = false)
@@ -263,16 +263,26 @@ class ExternalPadSettingsView(
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 .apply { setMargins(0, 0, 0, dp(6)) }
         }
-        group.addView(
-            TextView(context).apply {
-                text = title.uppercase()
-                setTextColor(theme.border)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-                typeface = theme.typeface
-                setPadding(dp(8), dp(2), dp(8), dp(2))
-            },
-        )
-        group.build()
+        val header = TextView(context).apply {
+            text = if (collapsible) "\u25B8  ${title.uppercase()}" else title.uppercase()
+            setTextColor(theme.border)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (collapsible) 13f else 11f)
+            typeface = theme.typeface
+            setPadding(dp(8), dp(if (collapsible) 8 else 2), dp(8), dp(if (collapsible) 8 else 2))
+        }
+        group.addView(header)
+        val body = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        group.addView(body)
+        body.build()
+        if (collapsible) {
+            // Closed by default; tap the title to open or close.
+            body.visibility = View.GONE
+            header.setOnClickListener {
+                val open = body.visibility != View.VISIBLE
+                body.visibility = if (open) View.VISIBLE else View.GONE
+                header.text = (if (open) "\u25BE  " else "\u25B8  ") + title.uppercase()
+            }
+        }
         content.addView(group)
     }
 
