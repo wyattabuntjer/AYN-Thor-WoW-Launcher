@@ -107,7 +107,7 @@ On the AYN Thor the bottom screen shows a touch pad while you play. The header h
 - **Keyboard:** a Gboard-style on-screen keyboard with a number row, shift and caps, and a `?123` symbols page with arrow keys.
 - **Settings page** (the gear) lets you change:
   - which modifier keys, window buttons and pad sections are shown (the rest resize to fill the space)
-  - how many F-keys show (any number from F1-F3 up to F1-F12), swap left/right sides, hotbar pages, label size, haptics and double-tap lock time
+  - how many F-keys show (any number from F1-F3 up to F1-F12), swap left/right sides, label size, haptics and double-tap lock time
   - trackpad speed, acceleration, tap-to-click and the scroll area
   - right-stick cursor speed, ramp, deadzone, A/B click mode and Y/X scroll (shown only when R3 toggling is on)
   - **remap and rename:** tap any window, number or F-key button to choose the key it sends, or give it a new name (up to 12 characters) typed on the on-screen keyboard. Shift, Ctrl, Alt and the trackpad click buttons are fixed. Use **Reset all remaps** or **Reset all names** to undo.
