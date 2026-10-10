@@ -389,9 +389,10 @@ class ExternalActionPad(
                     if (xServer.pointer.isButtonPressed(button)) xServer.injectPointerButtonRelease(button)
                     xServer.injectPointerButtonPress(button)
                 } else {
+                    val forwarded = xServer.pointer.isButtonPressed(button)
                     xServer.injectPointerButtonRelease(button)
-                    // If the game is in relative mode now, make sure it hears the release too.
-                    if (xServer.isRelativeMouseMovement()) xServer.getWinHandler().mouseEvent(upFlag, 0, 0, 0)
+                    // If the game is in relative mode and the release was not already forwarded to it, send it once.
+                    if (xServer.isRelativeMouseMovement() && !forwarded) xServer.getWinHandler().mouseEvent(upFlag, 0, 0, 0)
                 }
             }
             style()
