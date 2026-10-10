@@ -110,6 +110,7 @@ class ExternalPadSettingsView(
                 addView(sliderRow("Ramp starts at", PadSettings.STICK_RAMP, 50, 99) { "$it%" })
                 addView(sliderRow("Stick deadzone", PadSettings.STICK_DEADZONE, 5, 40) { "$it%" })
                 addView(cycleRow("A / B in cursor mode", PadSettings.AB_MODE, listOf("Off", "A left, B right", "A right, B left")))
+                addView(toggleRow(listOf("Double-tap A / B holds the click" to PadSettings.CLICK_HOLD)))
                 addView(toggleRow(listOf("Y / X scroll in cursor mode" to PadSettings.SCROLL_KEYS, "Invert Y / X scroll" to PadSettings.SCROLL_INVERT)))
                 addView(sliderRow("Scroll speed", PadSettings.SCROLL_SPEED, 1, 10) { "$it" })
                 addView(toggleRow(listOf("Show mode message" to PadSettings.MODE_MESSAGE)))

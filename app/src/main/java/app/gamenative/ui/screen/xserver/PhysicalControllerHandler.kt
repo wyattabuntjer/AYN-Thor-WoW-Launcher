@@ -85,7 +85,24 @@ class PhysicalControllerHandler(
     // Physical key code -> scroll binding for Y / X pressed while in cursor mode (Y scrolls up, X scrolls down).
     private val cursorScrollBindings = mutableMapOf<Int, Binding>()
 
+    // Double-tap hold: clicks kept down after a double tap, until the same button is pressed again.
+    private val heldClicks = mutableMapOf<Int, Binding>()
+    private val lastClickDownAt = mutableMapOf<Int, Long>()
+    private val pendingHold = mutableSetOf<Int>()
+    private val swallowUp = mutableSetOf<Int>()
+
+    private fun releaseHeldClicks() {
+        for (click in heldClicks.values) {
+            click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
+        }
+        heldClicks.clear()
+        pendingHold.clear()
+        swallowUp.clear()
+        lastClickDownAt.clear()
+    }
+
     private fun releaseCursorClicks() {
+        releaseHeldClicks()
         cursorScrollBindings.clear()
         clearScrollRepeats()
         for (click in cursorClickBindings.values) {
@@ -221,12 +238,18 @@ class PhysicalControllerHandler(
             if (controller != null && !radialMenuPressed) {
                 // Always finish a click we started, even if the mode was switched meanwhile.
                 if (event.action == KeyEvent.ACTION_UP) {
+                    if (swallowUp.remove(keyCode)) return true
                     cursorScrollBindings.remove(keyCode)?.let { scroll ->
                         handleScrollBinding(scroll, false)
                         return true
                     }
                     cursorClickBindings.remove(keyCode)?.let { click ->
-                        click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
+                        if (pendingHold.remove(keyCode)) {
+                            // Second tap of a double tap: keep the button down until it is pressed again.
+                            heldClicks[keyCode] = click
+                        } else {
+                            click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
+                        }
                         return true
                     }
                 } else if (event.action == KeyEvent.ACTION_DOWN && rightStickMouseMode && PadSettings.bool(PadSettings.SCROLL_KEYS) &&
@@ -248,6 +271,23 @@ class PhysicalControllerHandler(
                         else -> null
                     }
                     if (click != null) {
+                        heldClicks.remove(keyCode)?.let { held ->
+                            // Pressing a held button again lets go of it.
+                            held.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
+                            swallowUp.add(keyCode)
+                            lastClickDownAt.remove(keyCode)
+                            return true
+                        }
+                        if (PadSettings.bool(PadSettings.CLICK_HOLD)) {
+                            val now = android.os.SystemClock.uptimeMillis()
+                            val last = lastClickDownAt[keyCode]
+                            if (last != null && now - last <= PadSettings.doubleTapMs) {
+                                pendingHold.add(keyCode)
+                                lastClickDownAt.remove(keyCode)
+                            } else {
+                                lastClickDownAt[keyCode] = now
+                            }
+                        }
                         cursorClickBindings[keyCode] = click
                         click.pointerButton?.let { xServer?.injectPointerButtonPress(it) }
                         return true
@@ -451,6 +491,8 @@ class PhysicalControllerHandler(
         } else {
             mouseMoveContributions.keys.removeAll { it.keyCode in stickKeys }
             recalculateMouseMoveOffset()
+            // A held click must not outlive cursor mode.
+            releaseHeldClicks()
         }
         sendGamepadState()
         onRightStickMouseModeChanged?.invoke(enabled)
