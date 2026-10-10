@@ -20,7 +20,9 @@ object WowClientDownloader {
     const val BUILD_INFO = ".build.info"
     private const val PLATFORM_ARCH = "arm64"
     private const val EXCLUDED_ARCH = "x86_64"
-    private val PATCH_URL get() = "http://us.patch.battle.net:1119/$TARGET_PRODUCT"
+    /** The region whose servers to ask: the chosen one, or US for Forever (its test servers are US-hosted). */
+    private val REGION_CODE get() = if (WowFlavor.current.hasRegion) WowFlavor.region.code else "us"
+    private val PATCH_URL get() = "http://$REGION_CODE.patch.battle.net:1119/$TARGET_PRODUCT"
     private const val DEFAULT_CDN_PATH = "tpr/wow"
     private val DEFAULT_CDN_HOSTS = listOf("level3.blizzard.com", "us.cdn.blizzard.com")
 
@@ -71,7 +73,8 @@ object WowClientDownloader {
             Timber.w("checkVersion: response body is null or unsuccessful")
             return null
         }
-        val remoteRow = parsePsv(versions).firstOrNull()
+        val remoteRows = parsePsv(versions)
+        val remoteRow = (remoteRows.firstOrNull { it["Region"] == REGION_CODE } ?: remoteRows.firstOrNull())
             ?: run {
                 Timber.w("checkVersion: no remote row in $versions")
                 return null
@@ -84,7 +87,7 @@ object WowClientDownloader {
         val remoteBuildKey = remoteRow["BuildConfig"].orEmpty()
 
         val cdns = runCatching { fetchText("$PATCH_URL/cdns") }.getOrNull()?.let(::parsePsv).orEmpty()
-        val cdnsRow = cdns.firstOrNull { it["Name"] == "us" } ?: cdns.firstOrNull()
+        val cdnsRow = cdns.firstOrNull { it["Name"] == REGION_CODE } ?: cdns.firstOrNull()
 
         val isOutdated = localVersion != remoteVersion || (remoteBuildKey.isNotBlank() && localBuildKey != remoteBuildKey)
         Timber.i("checkVersion: localVersion=$localVersion, remoteVersion=$remoteVersion, isOutdated=$isOutdated")

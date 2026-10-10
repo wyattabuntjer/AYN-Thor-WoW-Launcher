@@ -3,6 +3,21 @@ package app.gamenative.ui.screen.wow
 import android.content.Context
 import java.io.File
 
+/** A Battle.net region. [code] is used as the game's `portal` and as the patch server prefix. */
+enum class WowRegion(val code: String) {
+    US("us"),
+    EU("eu"),
+    KR("kr"),
+    TW("tw"),
+    ;
+
+    val next get() = entries[(ordinal + 1) % entries.size]
+
+    companion object {
+        fun fromCode(code: String?) = entries.firstOrNull { it.name == code } ?: US
+    }
+}
+
 /**
  * The WoW products this launcher can boot. Each one lives in its own folder under the
  * shared install root (next to `Data/` and `.build.info`), exactly like a Battle.net install.
@@ -69,6 +84,12 @@ enum class WowFlavor(
     /** True for the three Classic products, which share the Classic button and its second row. */
     val isClassic get() = this == CLASSIC_ERA || this == CLASSIC_ANNIVERSARY || this == CLASSIC_MOP
 
+    /** Forever runs on Blizzard's test servers, so it has no region choice. */
+    val hasRegion get() = this != FOREVER
+
+    /** The `portal` for Config.wtf: the chosen region, or the fixed test portal for Forever. */
+    val activePortal get() = if (hasRegion) WowFlavor.region.code else portal
+
     val exeName get() = exeNames.first()
 
     /** Short name for the launch screens: Forever, Retail or one of the Classic products. */
@@ -106,12 +127,28 @@ enum class WowFlavor(
         var current: WowFlavor = FOREVER
             private set
 
+        /** The region chosen for [current]. Saved per game; US until changed. */
+        @Volatile
+        var region: WowRegion = WowRegion.US
+            private set
+
         private var loaded = false
+
+        private fun regionKey(flavor: WowFlavor) = "region_${flavor.name}"
+
+        fun regionFor(context: Context, flavor: WowFlavor): WowRegion =
+            WowRegion.fromCode(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(regionKey(flavor), null))
+
+        fun setRegion(context: Context, flavor: WowFlavor, value: WowRegion) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(regionKey(flavor), value.name).apply()
+            if (flavor == current) region = value
+        }
 
         fun load(context: Context): WowFlavor {
             if (!loaded) {
                 val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_FLAVOR, null)
                 current = entries.firstOrNull { it.name == saved } ?: FOREVER
+                region = regionFor(context, current)
                 loaded = true
             }
             return current
@@ -119,6 +156,7 @@ enum class WowFlavor(
 
         fun select(context: Context, flavor: WowFlavor) {
             current = flavor
+            region = regionFor(context, flavor)
             loaded = true
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_FLAVOR, flavor.name).apply()
         }

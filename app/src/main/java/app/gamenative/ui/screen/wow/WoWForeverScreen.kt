@@ -99,6 +99,7 @@ fun WoWForeverScreen(
     var flavor by remember { mutableStateOf(WowFlavor.load(context)) }
     var buttonPad by remember { mutableStateOf(ButtonPad.isEnabled(context, flavor)) }
     var r3Toggle by remember { mutableStateOf(ButtonPad.r3Toggle(context, flavor)) }
+    var region by remember { mutableStateOf(WowFlavor.region) }
     var forceGamepadUi by remember { mutableStateOf(ButtonPad.forceGamepadUi(context, flavor)) }
     var gamePath by remember { mutableStateOf(GamePath.load(context)) }
     var files by remember { mutableStateOf(GamePath.Status()) }
@@ -199,6 +200,7 @@ fun WoWForeverScreen(
         if (selected == flavor || isLaunching || isUpdating) return
         WowFlavor.select(context, selected)
         flavor = selected
+        region = WowFlavor.region
         buttonPad = ButtonPad.isEnabled(context, selected)
         forceGamepadUi = ButtonPad.forceGamepadUi(context, selected)
         r3Toggle = ButtonPad.r3Toggle(context, selected)
@@ -713,6 +715,24 @@ fun WoWForeverScreen(
                     }
                     .padding(vertical = 8.dp),
             )
+            if (flavor.hasRegion) {
+                Text(
+                    text = "Region: ${region.name} (tap to change)",
+                    fontSize = 11.sp,
+                    color = WowSubtle,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !isLaunching && !isUpdating) {
+                            region = region.next
+                            WowFlavor.setRegion(context, flavor, region)
+                            // A different region has its own servers and game build, so check again.
+                            versionStatus = null
+                            checkVersionStatus()
+                        }
+                        .padding(vertical = 8.dp),
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -1297,7 +1317,7 @@ private fun containerConfig(gameRoot: File, gpu: GpuProfile, exeName: String, sc
 }
 
 private val CONFIG_DEFAULTS get() = linkedMapOf(
-    "portal" to "\"${WowFlavor.current.portal}\"",
+    "portal" to "\"${WowFlavor.current.activePortal}\"",
     "agentUID" to "\"$TARGET_PRODUCT\"",
     "gxApi" to "\"D3D11\"",
     "textLocale" to "\"enUS\"",
@@ -1327,7 +1347,8 @@ private val CONFIG_DEFAULTS get() = linkedMapOf(
     "InputDeviceInterfaceStyle" to "\"1\"",
 )
 
-private val ALWAYS_FORCED_CONFIG_KEYS = listOf("gxApi", "RenderScale", "ResampleQuality")
+private val ALWAYS_FORCED_CONFIG_KEYS get() =
+    listOf("gxApi", "RenderScale", "ResampleQuality") + if (WowFlavor.current.hasRegion) listOf("portal") else emptyList()
 private val GAMEPAD_CONFIG_KEYS = listOf("GamePadEnable", "InputDeviceInterfaceStyle")
 
 private val LEGACY_CONFIG_VALUES = mapOf(
