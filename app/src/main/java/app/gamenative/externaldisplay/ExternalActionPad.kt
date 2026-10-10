@@ -53,6 +53,7 @@ class ExternalActionPad(
     private lateinit var padModifierRow: LinearLayout
     private lateinit var trackpadModifierRow: LinearLayout
     private val releaseMouseButtons = mutableListOf<() -> Unit>()
+    private val lockedMouseButtons = mutableSetOf<String>()
 
     init {
         PadSettings.init(context)
@@ -374,6 +375,9 @@ class ExternalActionPad(
             var lastDownAt = 0L
 
             fun style() {
+                // A held button must survive quick trackpad touches, which would otherwise count as taps.
+                if (locked) lockedMouseButtons.add(label) else lockedMouseButtons.remove(label)
+                trackpadView.setTapClicksSuppressed(lockedMouseButtons.isNotEmpty())
                 background = theme.buttonBackground(density, 12f, pressed || locked, emphasized = locked)
                 setTextColor(if (pressed || locked) theme.textPressed else theme.text)
             }

@@ -2065,10 +2065,20 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         if (panKeyDown  && panDownKey  != null) { xServer.injectKeyRelease(panDownKey);  panKeyDown = false; }
     }
 
+    /**
+     * While a mouse button is being held down from outside (the pad's locked click buttons), a quick
+     * touch must not count as a tap: a tap would press and release that same button and end the hold.
+     */
+    public void setTapClicksSuppressed(boolean suppressed) {
+        this.tapClicksSuppressed = suppressed;
+    }
+
+    private boolean tapClicksSuppressed = false;
+
     private void handleFingerUp(Finger finger1) {
         switch (this.numFingers) {
             case 1:
-                if (finger1.isTap() && !suppressNextLeftTap) {
+                if (finger1.isTap() && !suppressNextLeftTap && !tapClicksSuppressed) {
                     if (this.moveCursorToTouchpoint) {
                         this.xServer.injectPointerMove(finger1.x, finger1.y);
                 }
@@ -2079,7 +2089,7 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
                 break;
             case 2:
                 Finger finger2 = findSecondFinger(finger1);
-                if (finger2 != null && finger1.isTap()) {
+                if (finger2 != null && finger1.isTap() && !tapClicksSuppressed) {
                     pressPointerButtonRight(finger1);
                     suppressNextLeftTap = true;
                     break;
