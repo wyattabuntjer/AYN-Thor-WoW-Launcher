@@ -281,7 +281,7 @@ class PhysicalControllerHandler(
                         if (PadSettings.bool(PadSettings.CLICK_HOLD)) {
                             val now = android.os.SystemClock.uptimeMillis()
                             val last = lastClickDownAt[keyCode]
-                            if (last != null && now - last <= PadSettings.doubleTapMs) {
+                            if (last != null && now - last <= PadSettings.int(PadSettings.CLICK_HOLD_MS)) {
                                 pendingHold.add(keyCode)
                                 lastClickDownAt.remove(keyCode)
                             } else {

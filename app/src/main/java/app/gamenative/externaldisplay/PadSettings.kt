@@ -58,6 +58,8 @@ object PadSettings {
     const val SCROLL_KEYS = "scroll_keys"
     /** In cursor mode, double-tapping A or B holds that click until the button is pressed again. */
     const val CLICK_HOLD = "click_hold"
+    /** How quickly the second A / B tap must follow the first to count as a double tap, in ms. */
+    const val CLICK_HOLD_MS = "click_hold_ms"
     const val SCROLL_SPEED = "scroll_speed"
     const val SCROLL_INVERT = "scroll_invert"
     const val MODE_MESSAGE = "mode_message"
@@ -102,6 +104,7 @@ object PadSettings {
         R3_TOGGLE to true,
         SCROLL_KEYS to true,
         CLICK_HOLD to true,
+        CLICK_HOLD_MS to 350,
         SCROLL_SPEED to 5,
         SCROLL_INVERT to false,
         MODE_MESSAGE to true,
