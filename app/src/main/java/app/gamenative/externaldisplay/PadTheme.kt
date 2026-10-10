@@ -40,8 +40,8 @@ data class PadTheme(
     }
 
     /** Dim, thinner trim for secondary buttons, so the action buttons stand out. */
-    private val borderMuted: Int get() = blend(border, keyBottom, PadSettings.mutedAmount)
-    private val borderInnerMuted: Int get() = blend(borderInner, keyBottom, PadSettings.mutedAmount)
+    private fun borderMuted(base: Int): Int = blend(base, keyBottom, PadSettings.mutedAmount)
+    private fun borderInnerMuted(base: Int): Int = blend(base, keyBottom, PadSettings.mutedAmount)
 
     private fun blend(from: Int, to: Int, amount: Float): Int {
         fun mix(a: Int, b: Int) = (a + (b - a) * amount).toInt()
@@ -64,29 +64,34 @@ data class PadTheme(
         emphasized: Boolean = false,
         muted: Boolean = false,
         raised: Boolean = false,
+        /** A user-chosen trim color replacing the gold. */
+        accent: Int? = null,
     ): Drawable {
+        val edge = accent ?: border
+        val edgeInner = if (accent != null) blend(accent, keyBottom, 0.55f) else borderInner
+        val edgeBright = if (accent != null) blend(accent, Color.WHITE, 0.3f) else borderBright
         val dim = muted && !active && !emphasized
         val top = if (active) pressedTop else if (raised) raisedTop else keyTop
         val bottom = if (active) pressedBottom else if (raised) raisedBottom else keyBottom
         val outer = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(top, bottom)).apply {
             cornerRadius = radiusDp * density
             val strokeDp = if (emphasized) 4 else if (dim) 2 else 3
-            setStroke((strokeDp * density).toInt(), if (emphasized) borderBright else if (dim) borderMuted else border)
+            setStroke((strokeDp * density).toInt(), if (emphasized) edgeBright else if (dim) borderMuted(edge) else edge)
         }
         val inner = GradientDrawable().apply {
             cornerRadius = (radiusDp - 2).coerceAtLeast(2f) * density
             setColor(Color.TRANSPARENT)
-            setStroke(density.toInt().coerceAtLeast(1), if (dim) borderInnerMuted else borderInner)
+            setStroke(density.toInt().coerceAtLeast(1), if (dim) borderInnerMuted(edgeInner) else edgeInner)
         }
         val inset = (3 * density).toInt()
         return LayerDrawable(arrayOf(outer, inner)).apply { setLayerInset(1, inset, inset, inset, inset) }
     }
 
     /** Normal face, switching to the glowing face while pressed. */
-    fun buttonStates(density: Float, radiusDp: Float, muted: Boolean = false, raised: Boolean = false): StateListDrawable =
+    fun buttonStates(density: Float, radiusDp: Float, muted: Boolean = false, raised: Boolean = false, accent: Int? = null): StateListDrawable =
         StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed), buttonBackground(density, radiusDp, active = true))
-            addState(intArrayOf(), buttonBackground(density, radiusDp, active = false, muted = muted, raised = raised))
+            addState(intArrayOf(android.R.attr.state_pressed), buttonBackground(density, radiusDp, active = true, accent = accent))
+            addState(intArrayOf(), buttonBackground(density, radiusDp, active = false, muted = muted, raised = raised, accent = accent))
         }
 
     companion object {

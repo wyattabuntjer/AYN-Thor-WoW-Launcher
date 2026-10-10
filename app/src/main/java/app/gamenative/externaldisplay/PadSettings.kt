@@ -17,6 +17,8 @@ object PadSettings {
     private const val PREFS = "pad_settings"
     private const val REMAP = "remap"
     private const val RENAME = "rename"
+    private const val COLOR = "color"
+    private const val ORDER = "order"
     private const val PROFILE_PREFIX = "profile_"
     const val PROFILE_SLOTS = 3
 
@@ -202,6 +204,75 @@ object PadSettings {
         version++
     }
 
+    // Button colors: pad button label -> ARGB trim color. No entry means the theme's gold.
+
+    private fun colorJson(): JSONObject =
+        runCatching { JSONObject(prefs?.getString(COLOR, null) ?: "{}") }.getOrDefault(JSONObject())
+
+    fun colorOf(label: String): Int? = colorJson().takeIf { it.has(label) }?.optInt(label)
+
+    fun setColor(labels: List<String>, color: Int?) {
+        val json = colorJson()
+        labels.forEach { if (color == null) json.remove(it) else json.put(it, color) }
+        prefs?.edit()?.putString(COLOR, json.toString())?.apply()
+        version++
+    }
+
+    fun clearColors() {
+        prefs?.edit()?.remove(COLOR)?.apply()
+        version++
+    }
+
+    // Button order inside a group: group name -> labels in the order shown.
+
+    private fun orderJson(): JSONObject =
+        runCatching { JSONObject(prefs?.getString(ORDER, null) ?: "{}") }.getOrDefault(JSONObject())
+
+    /** [defaults] in the user's saved order. Labels not in the saved list keep their default place after it. */
+    fun ordered(group: String, defaults: List<String>): List<String> {
+        val arr = orderJson().optJSONArray(group) ?: return defaults
+        val saved = (0 until arr.length()).map { arr.optString(it) }.filter { it in defaults }.distinct()
+        return saved + defaults.filter { it !in saved }
+    }
+
+    /** Moves [label] up (-1) or down (+1) inside its group. */
+    fun move(group: String, defaults: List<String>, label: String, delta: Int) {
+        val list = ordered(group, defaults).toMutableList()
+        val from = list.indexOf(label)
+        val to = from + delta
+        if (from < 0 || to !in list.indices) return
+        list.removeAt(from)
+        list.add(to, label)
+        val json = orderJson().put(group, org.json.JSONArray(list))
+        prefs?.edit()?.putString(ORDER, json.toString())?.apply()
+        version++
+    }
+
+    fun clearOrder() {
+        prefs?.edit()?.remove(ORDER)?.apply()
+        version++
+    }
+
+    // Layout export / import: just the button arrangement (keys, names, colors, order).
+
+    fun layout(): JSONObject = JSONObject().apply {
+        put(REMAP, remapJson())
+        put(RENAME, renameJson())
+        put(COLOR, colorJson())
+        put(ORDER, orderJson())
+    }
+
+    /** Applies a [layout]. Returns false if it has none of the layout sections. */
+    fun applyLayout(json: JSONObject): Boolean {
+        val keys = listOf(REMAP, RENAME, COLOR, ORDER)
+        if (keys.none { json.optJSONObject(it) != null }) return false
+        val editor = prefs?.edit() ?: return false
+        keys.forEach { k -> editor.putString(k, (json.optJSONObject(k) ?: JSONObject()).toString()) }
+        editor.apply()
+        version++
+        return true
+    }
+
     // Reset, profiles, export and import.
 
     /** Settings the launcher sets per game at launch. Profiles and resets leave them alone during play. */
@@ -212,6 +283,8 @@ object PadSettings {
             DEFAULTS.keys.filter { it !in LAUNCH_ONLY }.forEach { remove(it) }
             remove(REMAP)
             remove(RENAME)
+            remove(COLOR)
+            remove(ORDER)
         }?.apply()
         version++
     }
@@ -223,6 +296,8 @@ object PadSettings {
         }
         put(REMAP, remapJson())
         put(RENAME, renameJson())
+        put(COLOR, colorJson())
+        put(ORDER, orderJson())
     }
 
     /** Applies a [snapshot]. Unknown or mistyped entries are ignored. */
@@ -236,6 +311,8 @@ object PadSettings {
         if (json.has(FKEY_COUNT) && !json.has(FKEY_N)) editor.putInt(FKEY_N, if (json.optInt(FKEY_COUNT) == 1) 6 else 12)
         json.optJSONObject(REMAP)?.let { editor.putString(REMAP, it.toString()) }
         json.optJSONObject(RENAME)?.let { editor.putString(RENAME, it.toString()) }
+        json.optJSONObject(COLOR)?.let { editor.putString(COLOR, it.toString()) }
+        json.optJSONObject(ORDER)?.let { editor.putString(ORDER, it.toString()) }
         editor.apply()
         version++
     }

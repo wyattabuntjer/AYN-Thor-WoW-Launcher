@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -159,6 +160,27 @@ class ExternalPadSettingsView(
                     },
                 ),
             )
+            addView(
+                rowOf(
+                    button("Export layout to file") {
+                        status.text = runCatching {
+                            val file = layoutFile()
+                            file.writeText(PadSettings.layout().toString(2))
+                            "Saved ${file.name} in your WoW folder"
+                        }.getOrElse { "Could not save the layout file" }
+                    },
+                    button("Import layout from file") {
+                        val file = layoutFile()
+                        val json = runCatching { JSONObject(file.readText()) }.getOrNull()
+                        if (json == null || !PadSettings.applyLayout(json)) {
+                            status.text = "No layout file found. Looking for ${file.name} in your WoW folder"
+                        } else {
+                            showMain()
+                        }
+                    },
+                ),
+            )
+            addView(note("A layout is only the buttons: keys, names, colors and order."))
             addView(status)
         }
         section("Reset", collapsible = true) {
@@ -191,6 +213,19 @@ class ExternalPadSettingsView(
                     },
                 ),
             )
+            addView(
+                rowOf(
+                    button("Reset all colors") {
+                        PadSettings.clearColors()
+                        showRemap()
+                    },
+                    button("Reset button order") {
+                        PadSettings.clearOrder()
+                        showRemap()
+                    },
+                    filler = 1,
+                ),
+            )
         }
         val buttons = ExternalActionBarView.remappableButtons()
         section("Pad buttons") {
@@ -200,7 +235,7 @@ class ExternalPadSettingsView(
                         *chunk.map { (label, default) ->
                             val mapped = PadSettings.remapped(label)
                             val shown = PadSettings.displayName(label)
-                            button(if (mapped == null) shown else "$shown → ${keyName(mapped)}", active = mapped != null || PadSettings.renamed(label) != null) {
+                            button(if (mapped == null) shown else "$shown → ${keyName(mapped)}", active = mapped != null || PadSettings.renamed(label) != null || PadSettings.colorOf(label) != null) {
                                 showKeyPicker(label, default)
                             }
                         }.toTypedArray(),
@@ -235,6 +270,53 @@ class ExternalPadSettingsView(
                 ),
             )
         }
+        section("Color") {
+            val group = ExternalActionBarView.groupOf(label)
+            addView(
+                rowOf(
+                    *COLOR_CHOICES.map { (_, color) ->
+                        swatch(color, selected = PadSettings.colorOf(label) == color) {
+                            PadSettings.setColor(listOf(label), color)
+                            showKeyPicker(label, default)
+                        }
+                    }.toTypedArray(),
+                    swatch(null, selected = PadSettings.colorOf(label) == null) {
+                        PadSettings.setColor(listOf(label), null)
+                        showKeyPicker(label, default)
+                    },
+                ),
+            )
+            if (group != null) {
+                addView(
+                    rowOf(
+                        button("Apply to whole group") {
+                            PadSettings.setColor(ExternalActionBarView.defaultLabels(group), PadSettings.colorOf(label))
+                            showKeyPicker(label, default)
+                        },
+                    ),
+                )
+            }
+        }
+        ExternalActionBarView.groupOf(label)?.let { group ->
+            section("Order in ${GROUP_NAMES[group]}") {
+                val defaults = ExternalActionBarView.defaultLabels(group)
+                val list = PadSettings.ordered(group, defaults)
+                val pos = list.indexOf(label)
+                addView(note("Position ${pos + 1} of ${list.size}. A button only moves inside its own group."))
+                addView(
+                    rowOf(
+                        button("\u25B2 Up") {
+                            PadSettings.move(group, defaults, label, -1)
+                            showKeyPicker(label, default)
+                        },
+                        button("\u25BC Down") {
+                            PadSettings.move(group, defaults, label, 1)
+                            showKeyPicker(label, default)
+                        },
+                    ),
+                )
+            }
+        }
         section("Keys") {
             PICKER_KEYS.chunked(6).forEach { chunk ->
                 addView(
@@ -249,6 +331,28 @@ class ExternalPadSettingsView(
                     ),
                 )
             }
+        }
+    }
+
+    /** A color square for the picker; null is the default gold. A white ring marks the current choice. */
+    private fun swatch(color: Int?, selected: Boolean, onClick: () -> Unit): Button = Button(context).apply {
+        text = if (color == null) "Default" else ""
+        setAllCaps(false)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        setTextColor(theme.text)
+        typeface = theme.typeface
+        minHeight = dp(36)
+        minimumHeight = dp(36)
+        setPadding(0, 0, 0, 0)
+        background = GradientDrawable().apply {
+            cornerRadius = 8 * density
+            setColor(color ?: 0xFF28201A.toInt())
+            setStroke((if (selected) 3 else 1) * density.toInt().coerceAtLeast(1), if (selected) 0xFFFFFFFF.toInt() else theme.border)
+        }
+        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) }
+        setOnClickListener {
+            PadSettings.haptic(this)
+            onClick()
         }
     }
 
@@ -437,6 +541,9 @@ class ExternalPadSettingsView(
         refresh()
     }
 
+    /** The layout file sits next to the game data, so it survives reinstalling the app. */
+    private fun layoutFile() = File(File(GamePath.load(context)), "WoWPad-layout.json")
+
     private fun flavorRow(): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -506,6 +613,23 @@ class ExternalPadSettingsView(
 
     private companion object {
         private const val MAX_NAME = 12
+
+        private val GROUP_NAMES = mapOf(
+            ExternalActionBarView.GROUP_WINDOWS to "the window buttons",
+            ExternalActionBarView.GROUP_FKEYS to "the F-keys",
+            ExternalActionBarView.GROUP_NUMBERS to "the number block",
+        )
+
+        /** Trim colors offered per button; "Default" keeps the gold. */
+        private val COLOR_CHOICES = listOf(
+            "Red" to 0xFFE53935.toInt(),
+            "Orange" to 0xFFFB8C00.toInt(),
+            "Yellow" to 0xFFFDD835.toInt(),
+            "Green" to 0xFF43A047.toInt(),
+            "Blue" to 0xFF1E88E5.toInt(),
+            "Purple" to 0xFF8E24AA.toInt(),
+            "White" to 0xFFEEEEEE.toInt(),
+        )
 
         val PICKER_KEYS: List<XKeycode> = buildList {
             val names = ('A'..'Z').map { "KEY_$it" } + (0..9).map { "KEY_$it" } + (1..12).map { "KEY_F$it" } +

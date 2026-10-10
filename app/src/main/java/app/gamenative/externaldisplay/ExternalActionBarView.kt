@@ -84,7 +84,7 @@ class ExternalActionBarView(
         }
         val numberGroup = group(vertical = true, strong = true).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 4f).apply { setMargins(0, dp(3), 0, dp(3)) }
-            ACTION_SLOTS.chunked(3).forEach {
+            orderedSlots(GROUP_NUMBERS, ACTION_SLOTS).chunked(3).forEach {
                 addView(keyRow(it, textSp = 26f, weight = 1f, raised = PadSettings.emphasis > 0f, hotbar = true))
             }
             if (!PadSettings.bool(PadSettings.SEC_NUMBERS)) visibility = GONE
@@ -94,7 +94,7 @@ class ExternalActionBarView(
             // F1 up to the chosen count (3-12). Up to six sit in one row of big buttons; more split into two
             // balanced rows, so the group always fills the same space.
             val count = PadSettings.int(PadSettings.FKEY_N).coerceIn(3, 12)
-            val fKeys = FUNCTION_KEYS.take(count)
+            val fKeys = orderedSlots(GROUP_FKEYS, FUNCTION_KEYS).take(count)
             val oneRow = count <= 6
             fKeys.chunked(if (oneRow) count else (count + 1) / 2)
                 .forEach { addView(keyRow(it, textSp = if (oneRow) 16f else 13f, weight = 1f, muted = true)) }
@@ -123,7 +123,7 @@ class ExternalActionBarView(
     }
 
     /** The window buttons to show: switched on in settings. Every game shows them all, since any button can be renamed. */
-    private fun visibleWindows(): List<Slot> = PANELS.filter { slot ->
+    private fun visibleWindows(): List<Slot> = orderedSlots(GROUP_WINDOWS, PANELS).filter { slot ->
         PadSettings.bool(PadSettings.windowKey(slot.label))
     }
 
@@ -175,7 +175,9 @@ class ExternalActionBarView(
             setTextSize(TypedValue.COMPLEX_UNIT_SP, textSp * PadSettings.labelScale)
             typeface = theme.typeface
             maxLines = 1
-            background = createKeyBackground(muted, raised)
+            val accent = PadSettings.colorOf(slot.label)
+            background = createKeyBackground(muted, raised, accent)
+            if (accent != null) setTextColor(accent)
             layoutParams = LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply {
                 val margin = dp(3)
                 setMargins(margin, margin, margin, margin)
@@ -227,8 +229,8 @@ class ExternalActionBarView(
         onKeyTapped()
     }
 
-    private fun createKeyBackground(muted: Boolean, raised: Boolean) =
-        theme.buttonStates(resources.displayMetrics.density, 10f, muted, raised)
+    private fun createKeyBackground(muted: Boolean, raised: Boolean, accent: Int? = null) =
+        theme.buttonStates(resources.displayMetrics.density, 10f, muted, raised, accent)
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -241,7 +243,31 @@ class ExternalActionBarView(
         super.onDetachedFromWindow()
     }
 
+    private fun orderedSlots(group: String, defaults: List<Slot>): List<Slot> {
+        val byLabel = defaults.associateBy { it.label }
+        return PadSettings.ordered(group, defaults.map { it.label }).mapNotNull { byLabel[it] }
+    }
+
     companion object {
+        const val GROUP_WINDOWS = "windows"
+        const val GROUP_FKEYS = "fkeys"
+        const val GROUP_NUMBERS = "numbers"
+
+        /** The group a pad button belongs to, or null for a label that is not a pad button. */
+        fun groupOf(label: String): String? = when {
+            PANELS.any { it.label == label } -> GROUP_WINDOWS
+            FUNCTION_KEYS.any { it.label == label } -> GROUP_FKEYS
+            ACTION_SLOTS.any { it.label == label } -> GROUP_NUMBERS
+            else -> null
+        }
+
+        /** A group's button labels in the default order. */
+        fun defaultLabels(group: String): List<String> = when (group) {
+            GROUP_WINDOWS -> PANELS
+            GROUP_FKEYS -> FUNCTION_KEYS
+            else -> ACTION_SLOTS
+        }.map { it.label }
+
         /** Every remappable pad button: its label and the key it sends by default. */
         /** Window buttons that exist in the selected client, for the "Window buttons shown" settings. */
         fun availableWindowLabels(): List<String> =
