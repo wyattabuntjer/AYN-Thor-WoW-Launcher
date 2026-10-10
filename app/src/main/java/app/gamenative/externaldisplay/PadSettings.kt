@@ -60,6 +60,8 @@ object PadSettings {
     const val CLICK_HOLD = "click_hold"
     /** How quickly the second A / B tap must follow the first to count as a double tap, in ms. */
     const val CLICK_HOLD_MS = "click_hold_ms"
+    /** Short wait before a single click is sent, so a double tap can start a hold without a click first. 0 = off. */
+    const val CLICK_WAIT_MS = "click_wait_ms"
     const val SCROLL_SPEED = "scroll_speed"
     const val SCROLL_INVERT = "scroll_invert"
     const val MODE_MESSAGE = "mode_message"
@@ -105,6 +107,7 @@ object PadSettings {
         SCROLL_KEYS to true,
         CLICK_HOLD to true,
         CLICK_HOLD_MS to 350,
+        CLICK_WAIT_MS to 120,
         SCROLL_SPEED to 5,
         SCROLL_INVERT to false,
         MODE_MESSAGE to true,

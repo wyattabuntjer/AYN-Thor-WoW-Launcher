@@ -373,6 +373,16 @@ class ExternalActionPad(
             var lockOnRelease = false
             var ignoreUp = false
             var lastDownAt = 0L
+            // Click wait: a single tap's press is held back briefly, so a double tap starts a hold without
+            // sending a click first.
+            var pressSent = false
+            var tapPending = false
+            var pendingPress: Runnable? = null
+            fun cancelPending() {
+                pendingPress?.let { removeCallbacks(it) }
+                pendingPress = null
+                tapPending = false
+            }
 
             fun style() {
                 // A held button must survive quick trackpad touches, which would otherwise count as taps.
@@ -397,7 +407,9 @@ class ExternalActionPad(
             }
             style()
             releaseMouseButtons.add {
-                if (pressed || locked) send(false)
+                cancelPending()
+                if (pressSent || locked) send(false)
+                pressSent = false
                 pressed = false; locked = false; lockOnRelease = false; ignoreUp = false
                 style()
             }
@@ -408,14 +420,42 @@ class ExternalActionPad(
                         val now = SystemClock.uptimeMillis()
                         if (locked) {
                             send(false)
+                            pressSent = false
                             locked = false
                             pressed = false
                             ignoreUp = true
-                        } else {
+                        } else if (tapPending) {
+                            // Second tap inside the wait: start the hold, and the first tap never clicks.
+                            cancelPending()
                             send(true)
+                            pressSent = true
+                            pressed = true
+                            lockOnRelease = true
+                            lastDownAt = now
+                        } else {
                             pressed = true
                             lockOnRelease = now - lastDownAt <= PadSettings.doubleTapMs
                             lastDownAt = now
+                            val wait = PadSettings.int(PadSettings.CLICK_WAIT_MS)
+                            if (wait > 0 && !lockOnRelease) {
+                                val run = Runnable {
+                                    pendingPress = null
+                                    send(true)
+                                    pressSent = true
+                                    if (!pressed) {
+                                        // The finger already lifted: finish the click now.
+                                        send(false)
+                                        pressSent = false
+                                        tapPending = false
+                                        releaseModifiers()
+                                    }
+                                }
+                                pendingPress = run
+                                postDelayed(run, wait.toLong())
+                            } else {
+                                send(true)
+                                pressSent = true
+                            }
                         }
                         style()
                     }
@@ -426,8 +466,10 @@ class ExternalActionPad(
                                 locked = true
                                 lockOnRelease = false
                             }
+                            pressed && !pressSent -> tapPending = true // the wait finishes the click
                             pressed -> {
                                 send(false)
+                                pressSent = false
                                 releaseModifiers()
                             }
                         }

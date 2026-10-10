@@ -93,6 +93,7 @@ class ExternalPadSettingsView(
             addView(sliderRow("Label size", PadSettings.LABEL_SCALE, 80, 140) { "$it%" })
             addView(cycleRow("Haptics", PadSettings.HAPTICS, listOf("Off", "Light", "Normal", "Strong")))
             addView(sliderRow("Double-tap lock", PadSettings.DOUBLE_TAP_MS, 200, 600) { "$it ms" })
+            addView(sliderRow("Click wait for double tap", PadSettings.CLICK_WAIT_MS, 0, 300) { if (it == 0) "Off" else "$it ms" })
         }
         section("Trackpad", collapsible = true) {
             addView(sliderRow("Speed", PadSettings.TP_SPEED, 1, 20) { tenths(it) })

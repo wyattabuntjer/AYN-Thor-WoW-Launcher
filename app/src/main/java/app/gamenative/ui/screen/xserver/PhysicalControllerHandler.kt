@@ -91,11 +91,19 @@ class PhysicalControllerHandler(
     private val pendingHold = mutableSetOf<Int>()
     private val swallowUp = mutableSetOf<Int>()
 
+    // Click wait: a first A / B tap is held back briefly, so a double tap starts a hold without a click first.
+    private val clickWaitHandler = Handler(Looper.getMainLooper())
+    private val pendingPress = mutableMapOf<Int, Runnable>()
+    private val tapLifted = mutableSetOf<Int>()
+
     private fun releaseHeldClicks() {
         for (click in heldClicks.values) {
             click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
         }
         heldClicks.clear()
+        pendingPress.values.forEach { clickWaitHandler.removeCallbacks(it) }
+        pendingPress.clear()
+        tapLifted.clear()
         pendingHold.clear()
         swallowUp.clear()
         lastClickDownAt.clear()
@@ -239,6 +247,11 @@ class PhysicalControllerHandler(
                 // Always finish a click we started, even if the mode was switched meanwhile.
                 if (event.action == KeyEvent.ACTION_UP) {
                     if (swallowUp.remove(keyCode)) return true
+                    if (pendingPress.containsKey(keyCode)) {
+                        // The press is still waiting for a possible second tap; the wait will finish the click.
+                        tapLifted.add(keyCode)
+                        return true
+                    }
                     cursorScrollBindings.remove(keyCode)?.let { scroll ->
                         handleScrollBinding(scroll, false)
                         return true
@@ -280,12 +293,37 @@ class PhysicalControllerHandler(
                         }
                         if (PadSettings.bool(PadSettings.CLICK_HOLD)) {
                             val now = android.os.SystemClock.uptimeMillis()
-                            val last = lastClickDownAt[keyCode]
-                            if (last != null && now - last <= PadSettings.int(PadSettings.CLICK_HOLD_MS)) {
+                            val waiting = pendingPress.remove(keyCode)
+                            if (waiting != null) {
+                                // Second tap inside the wait: hold, and the first tap never clicked.
+                                clickWaitHandler.removeCallbacks(waiting)
+                                tapLifted.remove(keyCode)
                                 pendingHold.add(keyCode)
                                 lastClickDownAt.remove(keyCode)
                             } else {
-                                lastClickDownAt[keyCode] = now
+                                val last = lastClickDownAt[keyCode]
+                                if (last != null && now - last <= PadSettings.int(PadSettings.CLICK_HOLD_MS)) {
+                                    pendingHold.add(keyCode)
+                                    lastClickDownAt.remove(keyCode)
+                                } else {
+                                    lastClickDownAt[keyCode] = now
+                                    val wait = PadSettings.int(PadSettings.CLICK_WAIT_MS)
+                                    if (wait > 0) {
+                                        cursorClickBindings[keyCode] = click
+                                        val run = Runnable {
+                                            pendingPress.remove(keyCode)
+                                            click.pointerButton?.let { xServer?.injectPointerButtonPress(it) }
+                                            if (tapLifted.remove(keyCode)) {
+                                                // Finger already up: finish the click.
+                                                cursorClickBindings.remove(keyCode)
+                                                click.pointerButton?.let { xServer?.injectPointerButtonRelease(it) }
+                                            }
+                                        }
+                                        pendingPress[keyCode] = run
+                                        clickWaitHandler.postDelayed(run, wait.toLong())
+                                        return true
+                                    }
+                                }
                             }
                         }
                         cursorClickBindings[keyCode] = click
