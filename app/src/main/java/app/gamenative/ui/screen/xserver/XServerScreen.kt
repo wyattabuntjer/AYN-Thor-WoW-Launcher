@@ -1132,6 +1132,13 @@ fun XServerScreen(
 
     val onQuickMenuItemSelected: (Int) -> Boolean = { itemId ->
         when (itemId) {
+            QuickMenuAction.SAVED_LOGIN -> {
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    app.gamenative.ui.screen.wow.SavedLoginTools.show(context, ::forceResumeIfSuspended)
+                }, 500L)
+                true
+            }
+
             QuickMenuAction.KEYBOARD -> {
                 keyboardRequestedFromOverlay = true
                 showSoftKeyboard(view, "onscreen_keyboard_enabled")

@@ -105,7 +105,7 @@ fun WoWForeverScreen(
     var files by remember { mutableStateOf(GamePath.Status()) }
     var isLaunching by remember { mutableStateOf(false) }
     var launchJob by remember { mutableStateOf<Job?>(null) }
-    var hasSavedLogin by remember { mutableStateOf(BattleNetSignIn.load(context) != null) }
+    var hasSavedLogin by remember { mutableStateOf(BattleNetSignIn.hasSavedLogin(context)) }
     var autoLogin by remember { mutableStateOf(BattleNetSignIn.autoLoginEnabled(context)) }
     // Ready to play: either a login is saved, or auto-login is off and you sign in by hand.
     val loginReady = hasSavedLogin || !autoLogin
@@ -444,6 +444,12 @@ fun WoWForeverScreen(
                         FrameGenerationPanel(flavor = flavor, enabled = !busy)
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                WowPanel {
+                    Box(modifier = Modifier.padding(20.dp)) {
+                        LoginConveniencePanel(hasSavedLogin = hasSavedLogin, enabled = !busy)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -676,15 +682,23 @@ fun WoWForeverScreen(
                             }
                         }
                         LinkButton("Turn Off Auto-Login", KeyOffIcon, enabled = !busy) {
-                            BattleNetSignIn.forget(context)
                             BattleNetSignIn.removeLoginFile(File(gamePath))
                             BattleNetSignIn.setAutoLoginEnabled(context, false)
-                            hasSavedLogin = false
                             autoLogin = false
                         }
                     } else {
                         LinkButton("Turn On Auto-Login", Icons.Default.Key, enabled = !busy) {
-                            showLoginDialog = true
+                            if (hasSavedLogin) {
+                                BattleNetSignIn.setAutoLoginEnabled(context, true)
+                                autoLogin = true
+                            } else showLoginDialog = true
+                        }
+                        if (hasSavedLogin) {
+                            LinkButton("Forget Saved Login", Icons.Default.Delete, enabled = !busy) {
+                                BattleNetSignIn.forget(context)
+                                BattleNetSignIn.removeLoginFile(File(gamePath))
+                                hasSavedLogin = false
+                            }
                         }
                     }
                 }
@@ -1290,6 +1304,7 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
         else Container.EXTERNAL_DISPLAY_MODE_OFF,
     )
     app.gamenative.utils.LsfgPreferences.applyTo(context, container, flavor.name)
+    WoWSessionSettings.applyTo(context, container)
     container.saveData()
     return CONTAINER_ID
 }

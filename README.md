@@ -2,6 +2,30 @@
 
 ## Lossless Scaling fork
 
+### Saved login and session convenience
+
+The launcher retains the existing Android Keystore-encrypted password. From the
+in-game quick menu, open **Controller → Saved login** after selecting WoW's
+password field. **Fill password field** replaces the focused field directly,
+without using the Android clipboard or pressing Log In. **Copy password
+temporarily** is available as a fallback: it marks the clipboard content sensitive
+and clears its own copy after 30 seconds while foregrounded, or when the app next
+regains access. A later unrelated clipboard copy is left intact. The setup screen
+also has a **Saved password** button. Typed keyboard text is not logged.
+
+Turning automatic login off keeps the encrypted password; only **Forget Saved
+Login** deletes it. Temporary Keystore failures no longer erase credentials.
+Launch-file cleanup is scoped to the original game and launch generation, so an
+older timer cannot delete a newly written login file.
+
+**Keep WoW running in menus and the background** defaults on in this fork and
+applies on the next launch. This avoids freezing network heartbeats when opening
+the launcher UI or keyboard, at the cost of additional background battery use.
+It cannot prevent server idle timeouts, network disconnections, Android process
+termination, or Blizzard authenticator challenges.
+
+### Frame generation
+
 This fork restores the existing LSFG frame-generation pipeline for user-supplied
 `Lossless.dll` files. No DLL or proprietary shader cache is included in the source
 or APK.

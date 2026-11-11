@@ -159,6 +159,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         PluviaApp.isActivityInForeground = true
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            app.gamenative.ui.screen.wow.SavedPasswordClipboard.clearExpired(this)
+        }, 250L)
 
         // Re-apply immersive mode to ensure fullscreen persists
         if (!desiredSystemUiVisible) {
@@ -286,6 +289,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) app.gamenative.ui.screen.wow.SavedPasswordClipboard.clearExpired(this)
         if (hasFocus && !desiredSystemUiVisible) {
             applyImmersiveMode()
         }
