@@ -75,10 +75,14 @@ class WowClientDownloaderTest {
     }
 
     @Test
-    fun readBuildInfo_parsesHostInstallationIfExists() {
-        val hostFile = File("/Applications/World of Warcraft/.build.info")
-        if (!hostFile.isFile) return
-        val result = WowClientDownloader.readBuildInfo(hostFile)
+    fun readBuildInfo_parsesForeverBuildFixture() {
+        // A local Blizzard update must not change the inputs to this unit test.
+        val buildInfo = File(tempFolder.newFolder("forever"), ".build.info")
+        buildInfo.writeText(
+            "Branch!STRING:0|Active!DEC:1|Build Key!HEX:16|CDN Key!HEX:16|Version!STRING:0|Product!STRING:0\n" +
+                "us|1|77777777777777777777777777777777|88888888888888888888888888888888|1.60.1.70205|wowf\n",
+        )
+        val result = WowClientDownloader.readBuildInfo(buildInfo)
         assertNotNull(result)
         assertEquals("wowf", result?.get("Product"))
         assertEquals("1.60.1.70205", result?.get("Version"))
