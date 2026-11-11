@@ -15,8 +15,8 @@ import org.json.JSONObject
 import timber.log.Timber
 
 object AppUpdater {
-    private const val RELEASES_URL = "https://api.github.com/repos/wyattabuntjer/AYN-Thor-WoW-Launcher/releases/latest"
-    private const val RELEASES_LIST_URL = "https://api.github.com/repos/wyattabuntjer/AYN-Thor-WoW-Launcher/releases?per_page=10"
+    private const val RELEASES_URL = "https://api.github.com/repos/emerytech/AYN-Thor-WoW-Launcher/releases/latest"
+    private const val RELEASES_LIST_URL = "https://api.github.com/repos/emerytech/AYN-Thor-WoW-Launcher/releases?per_page=10"
     private const val KEY_BETA = "beta_updates"
     private const val KEY_SKIP_AUTO = "skip_auto_updates"
 

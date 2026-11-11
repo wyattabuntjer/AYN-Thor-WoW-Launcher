@@ -30,7 +30,7 @@ import kotlin.jvm.JvmStatic
  * Flow:
  * 1. At launch time: install the layer .so + manifest into the container's
  *    filesystem where the Vulkan loader discovers implicit layers.
- * 2. Copy Lossless.dll from the Steam install dir (app 993090) into the
+ * 2. Copy Lossless.dll from the user-imported app-private store into the
  *    container's ~/.local/share/lsfg-vk/ directory.
  * 3. Write conf.toml with the DLL path, multiplier, flow scale, and
  *    performance mode. Set env vars so the layer finds its config.
@@ -40,6 +40,14 @@ import kotlin.jvm.JvmStatic
  */
 object LsfgVkManager {
     private const val TAG = "LsfgVkManager"
+
+    fun initialize(context: Context) {
+        appContext = context.applicationContext
+    }
+
+    fun persistMultiplier(container: Container, multiplier: Int) {
+        appContext?.let { LsfgPreferences.saveRuntime(it, container, multiplier) }
+    }
 
     private const val LOSSLESS_DLL_NAME = "Lossless.dll"
 
@@ -98,16 +106,16 @@ object LsfgVkManager {
     fun isSupported(container: Container): Boolean =
         container.containerVariant.equals(Container.BIONIC, ignoreCase = true)
 
-    /** Whether LSFG is armed (enabled + Lossless.dll available in Steam dir) for this container. The DLL is copied into the container at launch time by ensureRuntimeInstalled(). */
+    /** Whether LSFG is armed (enabled + Lossless.dll imported by the user) for this container. The DLL is copied into the container at launch time by ensureRuntimeInstalled(). */
     @JvmStatic
     fun isArmed(container: Container): Boolean =
         isSupported(container) &&
             parseBool(container.getExtra(EXTRA_ARMED, "false")) &&
             isDllAvailable()
 
-    /** Whether Lossless Scaling is installed (Lossless.dll exists in Steam dir). */
+    /** Whether Lossless Scaling is imported (an app-private Lossless.dll exists). */
     @JvmStatic
-    fun isDllAvailable(): Boolean = findSteamDll() != null
+    fun isDllAvailable(): Boolean = findImportedDll() != null
 
     /** Get the DLL path inside the container, or null if the copy doesn't exist. */
     @JvmStatic
@@ -285,7 +293,7 @@ object LsfgVkManager {
     @JvmStatic
     @Synchronized
     fun prepareNativeCache(context: Context, container: Container): String? {
-        val dll = containerDllPath(container)?.let { File(it) } ?: findSteamDll()
+        val dll = containerDllPath(container)?.let { File(it) } ?: findImportedDll()
         if (dll == null || !dll.isFile) return null
         val driverName = LosslessScaling.getDriverName(container)
         val cache = LosslessScaling.resolveOrBuildCache(context, dll, driverName)
@@ -342,7 +350,7 @@ object LsfgVkManager {
      * Installs:
      * - liblsfg-vk-layer.so → ~/.local/lib/
      * - VkLayer_LS_frame_generation.json → ~/.local/share/vulkan/implicit_layer.d/
-     * - Lossless.dll → ~/.local/share/lsfg-vk/  (copied from Steam install dir)
+     * - Lossless.dll → ~/.local/share/lsfg-vk/  (copied from the app-private import)
      *
      * Uses versioned caching to skip redundant copies.
      *
@@ -414,25 +422,23 @@ object LsfgVkManager {
         }
 
         val dllFile = File(dllDir, LOSSLESS_DLL_NAME)
-        val steamDll = findSteamDll()
-        if (steamDll != null) {
+        val importedDll = findImportedDll()
+        if (importedDll != null) {
             try {
-                if (!dllFile.isFile || dllFile.length() != steamDll.length()) {
-                    dllDir.mkdirs()
-                    steamDll.inputStream().use { input ->
-                        dllFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
+                if (!LsfgDllStore.sameContent(dllFile, importedDll)) {
+                    importedDll.inputStream().use { input ->
+                        LsfgDllStore.importTo(dllFile, input) { }
                     }
+                    nativeCachePath = null
                     if (dllFile.exists()) FileUtils.chmod(dllFile, 0b110100100)
                     Timber.tag(TAG).i("Copied Lossless.dll (%d bytes) into %s", dllFile.length(), dllDir)
                 }
             } catch (t: Throwable) {
-                Timber.tag(TAG).e(t, "Failed to copy Lossless.dll into container")
+                Timber.tag(TAG).e(t, "Failed to copy imported Lossless.dll into container")
                 success = false
             }
         } else if (parseBool(container.getExtra(EXTRA_ARMED, "false"))) {
-            Timber.tag(TAG).w("LSFG enabled but Lossless.dll not found in Steam dir")
+            Timber.tag(TAG).w("LSFG enabled but no imported Lossless.dll is available")
             success = false
         }
 
@@ -540,7 +546,8 @@ object LsfgVkManager {
 
     // ---- DLL discovery -----------------------------------------------------
 
-    private fun findSteamDll(): File? = null
+    private fun findImportedDll(): File? =
+        appContext?.let { LsfgDllStore.dll(it) }?.takeIf { it.isFile }
 
     // ---- Helpers -----------------------------------------------------------
 

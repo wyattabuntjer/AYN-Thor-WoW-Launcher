@@ -79,6 +79,8 @@ app/src/main/assets/bundled_components/
 # Blizzard client files never belong in this repo
 WowB-ARM64/
 *.exe
+*.dll
+*.lsfgcache
 
 # Agent guidance (private)
 docs/

@@ -438,6 +438,12 @@ fun WoWForeverScreen(
                         ButtonPad.setR3Toggle(context, flavor, it)
                     },
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                WowPanel {
+                    Box(modifier = Modifier.padding(20.dp)) {
+                        FrameGenerationPanel(flavor = flavor, enabled = !busy)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -1283,6 +1289,7 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, onS
         if (ButtonPad.isEnabled(context, WowFlavor.current)) Container.EXTERNAL_DISPLAY_MODE_BUTTONS
         else Container.EXTERNAL_DISPLAY_MODE_OFF,
     )
+    app.gamenative.utils.LsfgPreferences.applyTo(context, container, flavor.name)
     container.saveData()
     return CONTAINER_ID
 }
