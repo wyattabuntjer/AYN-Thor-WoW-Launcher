@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
@@ -41,7 +42,10 @@ internal object SavedPasswordClipboard {
         // Android can deny clipboard inspection in the background; onResume retries this.
         val description = runCatching { clipboard.primaryClipDescription }.getOrNull() ?: return
         if (description.extras?.getString(OWNER_KEY) == token) {
-            if (runCatching { clipboard.clearPrimaryClip() }.isFailure) return
+            if (runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) clipboard.clearPrimaryClip()
+                else clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            }.isFailure) return
         }
         owner = null
     }

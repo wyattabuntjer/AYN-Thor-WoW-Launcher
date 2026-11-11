@@ -1,6 +1,6 @@
 # AYN Thor WoW Launcher
 
-## Lossless Scaling and saved-login fork
+## Lossless Scaling and saved-login tools
 
 ![Feature tour](docs/media/thor-fork-features.gif)
 
@@ -23,7 +23,7 @@ Login** deletes it. Temporary Keystore failures no longer erase credentials.
 Launch-file cleanup is scoped to the original game and launch generation, so an
 older timer cannot delete a newly written login file.
 
-**Keep WoW running in menus and the background** defaults on in this fork and
+**Keep WoW running in menus and the background** defaults on and
 applies on the next launch. This avoids freezing network heartbeats when opening
 the launcher UI or keyboard, at the cost of additional background battery use.
 It cannot prevent server idle timeouts, network disconnections, Android process
@@ -31,7 +31,7 @@ termination, or Blizzard authenticator challenges.
 
 ### Frame generation
 
-This fork restores the existing LSFG frame-generation pipeline for user-supplied
+The launcher exposes the existing LSFG frame-generation pipeline for user-supplied
 `Lossless.dll` files. No DLL or proprietary shader cache is included in the source
 or APK.
 
@@ -47,11 +47,9 @@ rate. The in-game **LSFG-VK** tab exposes the existing flow-scale, performance-m
 and backend settings. Multiplier changes in that menu persist across launches.
 The default remains Off until selected.
 
-Application updates in this fork check `emerytech/AYN-Thor-WoW-Launcher`.
-Personal debug builds retain the upstream package and fixed debug certificate so
-they can update an existing installation without clearing its game folder,
-preferences, or saved login. Keep the previous APK for rollback; never uninstall
-or clear app data as part of an update.
+This contribution preserves the upstream application version and update channel.
+No signing key or local signing configuration is included. Keep the previous APK
+for rollback; do not uninstall or clear app data as part of testing an update.
 
 Build: `tools/fetch_components.sh`, then `./gradlew assembleModernDebug`.
 Focused verification: `./gradlew testModernDebugUnitTest --tests 'app.gamenative.utils.Lsfg*Test'`.
