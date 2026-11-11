@@ -1,6 +1,11 @@
 # AYN Thor WoW Launcher
 
-## Lossless Scaling fork
+## Lossless Scaling and saved-login fork
+
+![Feature tour](docs/media/thor-fork-features.gif)
+
+A 12-second feature tour combining labeled illustrations with the actual saved-login dialog.
+Requires your own Lossless.dll; no proprietary DLL or game data is distributed.
 
 ### Saved login and session convenience
 
