@@ -657,6 +657,12 @@ fun WoWForeverScreen(
                         LinkButton("Change Location", Icons.Default.FolderOpen, enabled = !busy) { folderPicker.launch(null) }
                     }
                     LinkButton("Graphics Driver", Icons.Default.Settings, enabled = !busy) { showDriverDialog = true }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     if (autoLogin) {
                         LinkButton(
                             text = if (hasSavedLogin) "Update Login" else "Configure Login",
