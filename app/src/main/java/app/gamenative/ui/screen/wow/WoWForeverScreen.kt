@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -110,6 +111,7 @@ fun WoWForeverScreen(
     // Ready to play: either a login is saved, or auto-login is off and you sign in by hand.
     val loginReady = hasSavedLogin || !autoLogin
     var showLoginDialog by remember { mutableStateOf(false) }
+    var showDriverDialog by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf(READY_STATUS) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showStoragePermissionDialog by remember { mutableStateOf(false) }
@@ -238,7 +240,7 @@ fun WoWForeverScreen(
         launchJob = scope.launch {
             try {
                 val containerId = withContext(Dispatchers.IO) {
-                    prepareLaunch(context, File(gamePath), gpu) { msg ->
+                    prepareLaunch(context, File(gamePath), WowDriverSettings.apply(context, gpu)) { msg ->
                         scope.launch(Dispatchers.Main) { statusText = msg }
                     }
                 }
@@ -654,6 +656,7 @@ fun WoWForeverScreen(
                     if (!filesMissing) {
                         LinkButton("Change Location", Icons.Default.FolderOpen, enabled = !busy) { folderPicker.launch(null) }
                     }
+                    LinkButton("Graphics Driver", Icons.Default.Settings, enabled = !busy) { showDriverDialog = true }
                     if (autoLogin) {
                         LinkButton(
                             text = if (hasSavedLogin) "Update Login" else "Configure Login",
@@ -732,6 +735,14 @@ fun WoWForeverScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+
+    if (showDriverDialog) {
+        GraphicsDriverDialog(
+            autoDriver = gpu.driver,
+            autoFlags = gpu.tuDebug,
+            onDismiss = { showDriverDialog = false },
+        )
     }
 
     if (showLoginDialog) {
@@ -1210,12 +1221,12 @@ private class StorageAccessDeniedException(cause: Throwable) : Exception(cause)
 private fun Throwable.isPermissionDenied() =
     message?.let { "EPERM" in it || "Operation not permitted" in it } == true
 
-private const val DEFAULT_DRIVER = "Turnip-WoW-scheduler-test"
-private const val ADRENO_8XX_DRIVER = "Turnip-V32-RP6sched"
+internal const val DEFAULT_DRIVER = "Turnip-WoW-scheduler-test"
+internal const val ADRENO_8XX_DRIVER = "Turnip-V32-RP6sched"
 private const val PROTON_VERSION = "proton-11.0-90624-arm64ec"
 private const val DXVK_VERSION = "2.4.1-wow-aarch64-test"
 
-private data class GpuProfile(val driver: String, val tuDebug: String, val screenSize: String, val label: String, val edition: String) {
+internal data class GpuProfile(val driver: String, val tuDebug: String, val screenSize: String, val label: String, val edition: String) {
     companion object {
         fun detect(context: Context) = if (isAdreno8xxDevice(context)) {
             GpuProfile(ADRENO_8XX_DRIVER, "noconform,sysmem", "1280x720", "Adreno 8xx", "Snapdragon 8 Elite / Adreno 8xx")
