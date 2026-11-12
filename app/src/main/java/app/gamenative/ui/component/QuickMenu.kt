@@ -129,6 +129,7 @@ object QuickMenuAction {
     const val SHOOTER_MODE = 9
     const val RADIAL_MENU = 10
     const val GYRO = 11
+    const val SAVED_LOGIN = 12
 }
 
 private object QuickMenuTab {
@@ -376,6 +377,14 @@ fun QuickMenu(
     val gyroMenu = remember(container?.id) { container?.let(::GyroQuickMenuState) }
 
     val controllerItems = buildList {
+        add(
+            QuickMenuItem(
+                id = QuickMenuAction.SAVED_LOGIN,
+                icon = Icons.Default.Fingerprint,
+                labelResId = R.string.saved_login,
+                accentColor = WowGold,
+            )
+        )
         add(
             QuickMenuItem(
                 id = QuickMenuAction.DISABLE_MOUSE,

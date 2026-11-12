@@ -39,17 +39,24 @@ import timber.log.Timber
 import java.io.File
 
 object BattleNetSignIn {
-    data class Login(val email: String, val password: String)
+    data class Login(val email: String, val password: String) {
+        override fun toString(): String = "Login(email=<redacted>, password=<redacted>)"
+    }
 
-    fun load(context: Context): Login? {
+    fun hasSavedLogin(context: Context): Boolean =
+        prefs(context).contains(KEY_EMAIL) && prefs(context).contains(KEY_PASSWORD)
+
+    fun load(context: Context): Login? = load(context) { Crypto.decrypt(it) }
+
+    internal fun load(context: Context, decrypt: (ByteArray) -> ByteArray): Login? {
         val prefs = prefs(context)
         val email = prefs.getString(KEY_EMAIL, null) ?: return null
         val sealed = prefs.getString(KEY_PASSWORD, null) ?: return null
         return try {
-            Login(email, String(Crypto.decrypt(Base64.decode(sealed, Base64.NO_WRAP))))
+            Login(email, String(decrypt(Base64.decode(sealed, Base64.NO_WRAP))))
         } catch (e: Exception) {
-            Timber.w(e, "Saved Battle.net login unreadable, clearing it")
-            forget(context)
+            // A transient Keystore failure must not erase the user's saved password.
+            Timber.w(e, "Saved Battle.net login temporarily unreadable; leaving encrypted credentials intact")
             null
         }
     }
@@ -62,9 +69,10 @@ object BattleNetSignIn {
     /** Clears the saved email and password. The auto-login choice is kept. */
     fun forget(context: Context) {
         prefs(context).edit().remove(KEY_EMAIL).remove(KEY_PASSWORD).apply()
+        SavedPasswordClipboard.clearOwned(context)
     }
 
-    /** Whether the launcher signs in for you. When off, no login.txt is ever written and nothing is stored. */
+    /** When off, no login.txt is written; the saved password remains available until explicitly forgotten. */
     fun autoLoginEnabled(context: Context): Boolean = prefs(context).getBoolean(KEY_AUTO_LOGIN, true)
 
     fun setAutoLoginEnabled(context: Context, enabled: Boolean) {
@@ -79,32 +87,35 @@ object BattleNetSignIn {
      */
     fun scheduleLoginFileRemoval(context: Context, gameRoot: File) {
         val appContext = context.applicationContext
-        val build = currentBuildKey(gameRoot)
+        val flavor = WowFlavor.current
+        val file = loginFile(gameRoot, flavor)
+        val token = loginFiles.current(file) ?: return
+        val build = currentBuildKey(gameRoot, flavor)
         val seen = prefs(appContext).getStringSet(KEY_LAUNCHED_BUILDS, emptySet()) ?: emptySet()
         val firstLaunch = build == null || build !in seen
         val delayMs = if (firstLaunch) FIRST_LAUNCH_LIFETIME_MS else LOGIN_FILE_LIFETIME_MS
         cleanupScope.launch {
             delay(delayMs)
-            removeLoginFile(gameRoot)
+            val removed = runCatching { loginFiles.removeIfCurrent(file, token) }
+                .onFailure { Timber.e(it, "Failed to remove temporary login file") }
+                .getOrDefault(false)
             // Only count the build as launched once the whole wait has passed, so a launch that
             // was cut short still gets the longer wait next time.
-            if (build != null) {
+            if (removed && build != null) {
                 val now = prefs(appContext).getStringSet(KEY_LAUNCHED_BUILDS, emptySet()) ?: emptySet()
                 prefs(appContext).edit().putStringSet(KEY_LAUNCHED_BUILDS, now + build).apply()
             }
         }
     }
 
-    private fun currentBuildKey(gameRoot: File): String? {
+    private fun currentBuildKey(gameRoot: File, flavor: WowFlavor): String? {
         val version = WowClientDownloader.readBuildInfo(File(gameRoot, WowClientDownloader.BUILD_INFO))?.get("Version")
-        return version?.takeIf { it.isNotBlank() }?.let { "${WowFlavor.current.product}:$it" }
+        return version?.takeIf { it.isNotBlank() }?.let { "${flavor.product}:$it" }
     }
 
     fun writeLoginFile(gameRoot: File, login: Login) {
         try {
-            val file = File(File(gameRoot, WowClientDownloader.FLAVOR_DIR), "login.txt")
-            file.parentFile?.mkdirs()
-            file.writeText("${login.email}\n${login.password}\n")
+            loginFiles.write(loginFile(gameRoot, WowFlavor.current), "${login.email}\n${login.password}\n")
         } catch (e: Exception) {
             Timber.e(e, "Failed to write login.txt")
         }
@@ -112,14 +123,16 @@ object BattleNetSignIn {
 
     fun removeLoginFile(gameRoot: File) {
         try {
-            val file = File(File(gameRoot, WowClientDownloader.FLAVOR_DIR), "login.txt")
-            if (file.exists()) file.delete()
+            loginFiles.remove(loginFile(gameRoot, WowFlavor.current))
         } catch (e: Exception) {
             Timber.e(e, "Failed to remove login.txt")
         }
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun loginFile(gameRoot: File, flavor: WowFlavor) = File(File(gameRoot, flavor.dir), "login.txt")
+    private val loginFiles = TransientLoginFiles()
 
     private const val PREFS = "battle_net_login"
     private const val KEY_EMAIL = "email"

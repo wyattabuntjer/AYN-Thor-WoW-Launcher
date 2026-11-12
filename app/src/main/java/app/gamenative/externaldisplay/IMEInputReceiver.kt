@@ -79,7 +79,6 @@ class IMEInputReceiver(
         
         return object : BaseInputConnection(this, false) {
             override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
-                Timber.d("IMEInputReceiver: commitText called with: '$text'")
                 text?.let(::typeText)
                 return true
             }
@@ -125,6 +124,21 @@ class IMEInputReceiver(
         text.forEach(::sendCharacterToGame)
     }
 
+    /** An explicit user action: replace the focused field, without clipboard use or Enter. */
+    fun fillSecretText(text: CharSequence): Boolean {
+        if (text.isEmpty() || text.any { it !in ' '..'~' || charToKeyDispatch(it) == null }) return false
+        val control = com.winlator.xserver.XKeycode.KEY_CTRL_L
+        val selectAll = com.winlator.xserver.XKeycode.KEY_A
+        xServer.injectKeyPress(control)
+        xServer.injectKeyPress(selectAll)
+        xServer.injectKeyRelease(selectAll)
+        xServer.injectKeyRelease(control)
+        xServer.injectKeyPress(com.winlator.xserver.XKeycode.KEY_BKSP)
+        xServer.injectKeyRelease(com.winlator.xserver.XKeycode.KEY_BKSP)
+        typeText(text)
+        return true
+    }
+
     private fun sendCharacterToGame(char: Char) {
         val keyDispatch = charToKeyDispatch(char)
         if (keyDispatch != null) {
@@ -149,11 +163,8 @@ class IMEInputReceiver(
             )
             xServer.keyboard.onKeyEvent(upEvent)
 
-            Timber.v(
-                "IMEInputReceiver: Sent char '$char' as keyCode ${keyDispatch.keyCode} (shift=${keyDispatch.requiresShift})",
-            )
         } else {
-            Timber.w("IMEInputReceiver: Could not map character '$char' to keyCode")
+            Timber.w("IMEInputReceiver: Input includes a character that cannot be mapped")
         }
     }
 

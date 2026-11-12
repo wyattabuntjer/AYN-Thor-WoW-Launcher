@@ -1,5 +1,59 @@
 # AYN Thor WoW Launcher
 
+## Lossless Scaling and saved-login tools
+
+![Feature tour](docs/media/thor-fork-features.gif)
+
+A 12-second feature tour combining labeled illustrations with the actual saved-login dialog.
+Requires your own Lossless.dll; no proprietary DLL or game data is distributed.
+
+### Saved login and session convenience
+
+The launcher retains the existing Android Keystore-encrypted password. From the
+in-game quick menu, open **Controller → Saved login** after selecting WoW's
+password field. **Fill password field** replaces the focused field directly,
+without using the Android clipboard or pressing Log In. **Copy password
+temporarily** is available as a fallback: it marks the clipboard content sensitive
+and clears its own copy after 30 seconds while foregrounded, or when the app next
+regains access. A later unrelated clipboard copy is left intact. The setup screen
+also has a **Saved password** button. Typed keyboard text is not logged.
+
+Turning automatic login off keeps the encrypted password; only **Forget Saved
+Login** deletes it. Temporary Keystore failures no longer erase credentials.
+Launch-file cleanup is scoped to the original game and launch generation, so an
+older timer cannot delete a newly written login file.
+
+**Keep WoW running in menus and the background** defaults on and
+applies on the next launch. This avoids freezing network heartbeats when opening
+the launcher UI or keyboard, at the cost of additional background battery use.
+It cannot prevent server idle timeouts, network disconnections, Android process
+termination, or Blizzard authenticator challenges.
+
+### Frame generation
+
+The launcher exposes the existing LSFG frame-generation pipeline for user-supplied
+`Lossless.dll` files. No DLL or proprietary shader cache is included in the source
+or APK.
+
+On the setup screen, use **Import DLL** to select your own file, or **Use existing
+Thor DLL** to copy it from `Bloodborne/Lossless.dll` (with `Download/Lossless.dll`
+as a fallback). The source file is left unchanged. Imports are staged and checked
+by the bundled shader reader before replacing a previous import. An unsupported
+file produces an error and preserves the previous DLL.
+
+Choose **Off**, **2×**, **3×**, or **4×** for each WoW product. Start with 2×;
+frame generation needs GPU headroom and does not increase the game's simulation
+rate. The in-game **LSFG-VK** tab exposes the existing flow-scale, performance-mode,
+and backend settings. Multiplier changes in that menu persist across launches.
+The default remains Off until selected.
+
+This contribution preserves the upstream application version and update channel.
+No signing key or local signing configuration is included. Keep the previous APK
+for rollback; do not uninstall or clear app data as part of testing an update.
+
+Build: `tools/fetch_components.sh`, then `./gradlew assembleModernDebug`.
+Focused verification: `./gradlew testModernDebugUnitTest --tests 'app.gamenative.utils.Lsfg*Test'`.
+
 > **A fork of [WoW Forever for Android](https://github.com/jaredgei/wow-forever-android) by [jaredgei](https://github.com/jaredgei).** The WoW launcher, the single-container setup, native ARM64 launch and the bundled runtime all come from jaredgei's project, which is itself a fork of GameNative. This fork adds Retail, Classic Era, TBC Anniversary and MoP Classic support, a styled launcher, a second-screen button pad with settings, controller cursor mode and a themed in-game menu for the AYN Thor. Please star and support the original.
 
 

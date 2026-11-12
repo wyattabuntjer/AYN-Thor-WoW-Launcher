@@ -76,6 +76,7 @@ object LsfgQuickMenuHelper {
         container.saveData()
 
         val effectiveEnabled = multiplier >= 2
+        LsfgVkManager.persistMultiplier(container, multiplier)
         val effectiveMultiplier = if (effectiveEnabled) multiplier else 2
         LsfgVkManager.updateConfigAtRuntime(
             container,
